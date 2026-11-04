@@ -1,0 +1,200 @@
+import { questions, markets, makePlan, storeUrl } from './quiz-model.mjs';
+
+const paths = {
+  arrow:'M4 12h16m-6-6 6 6-6 6', back:'M20 12H4m6-6-6 6 6 6', check:'m5 12 4 4L19 6',
+  wallet:'M4 6h14a2 2 0 0 1 2 2v11H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12v2m4 5h-6v5h6m-3-2.5h.01',
+  calendar:'M5 5h14a2 2 0 0 1 2 2v13H3V7a2 2 0 0 1 2-2m2-3v6m10-6v6M3 11h18M7 15h2m4 0h2m-8 3h2',
+  flag:'M5 21V3m0 1c5-4 9 4 14 0v10c-5 4-9-4-14 0',
+  chart:'M3 3v18h18M6 15l5-5 4 3 6-8m-5 0h5v5',
+  grid:'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z',
+  layers:'m12 3 10 5-10 5L2 8zm-10 9 10 5 10-5M2 16l10 5 10-5',
+  spark:'m12 2 2.8 7.2L22 12l-7.2 2.8L12 22l-2.8-7.2L2 12l7.2-2.8z',
+  clock:'M12 8v5l3 2M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0',
+  phone:'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m2 3h6m-4 14h2',
+  sun:'M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5M17 12A5 5 0 1 1 7 12a5 5 0 0 1 10 0',
+  lock:'M5 10h14v11H5zm3 0V6a4 4 0 0 1 8 0v4m-4 5v2',
+};
+const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.spark}"/></svg>`;
+const apple = '<svg viewBox="0 0 24 26" fill="currentColor" aria-hidden="true"><path d="M17.5 13.6c0-2.5 2.1-3.8 2.2-3.9-1.2-1.7-3-1.9-3.7-1.9-1.6-.2-3.1 1-3.9 1s-2-1-3.3-1c-1.7 0-3.2 1-4.1 2.4-1.7 3-.4 7.4 1.3 9.8.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.3-.8s2 .8 3.4.8 2.2-1.2 3-2.3c.9-1.3 1.3-2.6 1.4-2.7-.1 0-2.7-1-2.7-3.8ZM15 6.2c.7-.9 1.2-2.1 1.1-3.3-1 .1-2.3.7-3 1.5-.6.7-1.2 2-1.1 3.1 1.2.1 2.4-.6 3-1.3Z"/></svg>';
+const $ = selector => document.querySelector(selector);
+const main = $('#main');
+const params = new URLSearchParams(location.search);
+const staticPreview = location.protocol === 'file:' || document.querySelector('meta[name="wf-static-preview"]')?.content === 'true';
+let market = markets[params.get('market')?.toUpperCase()] ? params.get('market').toUpperCase() : 'US';
+let config = { preview: false, captchaReady: false };
+let screen = 'home';
+let answers = {};
+let captchaId = null;
+let captchaToken = '';
+let renderVersion = 0;
+let busy = false;
+let analyticsEnabled = false;
+const funnelEvents = [];
+const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_complete','captcha_verified','app_store_click']);
+const campaign = Object.fromEntries(['utm_source','utm_medium','utm_campaign','utm_content','utm_term','yclid'].filter(k=>params.has(k)).map(k=>[k,params.get(k).slice(0,250)]));
+const formatMoney = value => new Intl.NumberFormat(markets[market].locale,{style:'currency',currency:markets[market].currency,maximumFractionDigits:0}).format(value);
+
+function track(name, step) {
+  if (!allowedEvents.has(name)) return;
+  const event = { name, market, ...(Number.isInteger(step) ? { step: step + 1 } : {}) };
+  funnelEvents.push(event);
+  if (analyticsEnabled && typeof window.ym === 'function') window.ym(config.metricaId,'reachGoal',name,{...event, ...campaign});
+}
+
+function startAnalytics() {
+  analyticsEnabled = true;
+  window.ym = window.ym || function(){(window.ym.a=window.ym.a||[]).push(arguments);};
+  window.ym.l = Date.now();
+  const script = document.createElement('script'); script.src='https://mc.yandex.ru/metrika/tag.js'; script.async=true; document.head.append(script);
+  window.ym(config.metricaId,'init',{clickmap:false,trackLinks:false,accurateTrackBounce:true,webvisor:false,defer:true});
+  window.ym(config.metricaId,'hit',location.origin+location.pathname,{title:'Weekly Finances quiz',params:campaign});
+  // No financial inputs or answer values are included, including in queued events.
+  for (const event of funnelEvents) window.ym(config.metricaId,'reachGoal',event.name,{...event,...campaign});
+}
+
+function navigate(next, push = true) {
+  if (busy) return;
+  if (captchaId !== null && window.smartCaptcha) window.smartCaptcha.destroy(captchaId);
+  captchaId = null; captchaToken = '';
+  screen = next;
+  if (push) history.pushState({ quizScreen: next },'',location.href);
+  render();
+  main.focus({preventScroll:true});
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+function hero() {
+  return `<section class="hero fade-in"><div class="hero-copy"><span class="eyebrow">YOUR MONEY, ONE WEEK AT A TIME</span><h1>Make room for<br>a <em>calmer week.</em></h1><p>Less “where did it all go?”<br>More knowing what comes next.<br>Find a money routine that fits your life.</p><button class="primary" id="start-quiz">Find my weekly plan ${icon('arrow')}</button><div class="trust-line"><span>${icon('clock')}7 quick questions</span><span>${icon('lock')}No sign-up</span><span>Free quiz</span></div></div>
+  <div class="hero-art" aria-label="Illustration of a weekly money overview with example figures"><div class="orange-slab"></div><div class="phone"><div class="phone-top"><b>9:41</b><span>▰ ▰ ▰</span></div><div class="island"></div><div class="phone-nav">This Week</div><div class="phone-date">Your Sunday reset</div><div class="checkin-card"><b>A fresh week starts here.</b><p>One check-in. A clearer picture.</p><div class="mini-button">Update This Week</div></div><div class="mini-card"><div class="label">Weekly room in your plan</div><div class="mini-amount">${formatMoney(346)}</div><div class="mini-sub">After planned bills and savings</div></div><div class="mini-card"><div class="mini-pair"><span class="label">Your weekly rhythm</span><span class="green">Looking ahead ↗</span></div><div class="mini-bars"><i style="height:36%"></i><i style="height:60%"></i><i style="height:45%"></i><i style="height:72%"></i><i style="height:65%"></i><i style="height:88%"></i><i style="height:100%"></i></div></div><div class="mini-link"><span>Upcoming bills</span><span>→</span></div><div class="mini-link"><span>Dream purchases</span><span>→</span></div><div class="home-indicator"></div></div><div class="floating-note"><span class="note-dot"></span>A small weekly habit.<b>A little more headspace.</b></div><span class="art-caption">Illustrative preview · example figures</span></div></section>
+  <div class="flow-strip"><div class="flow-item"><span class="flow-num">01</span><div><b>Tell us a little about your week</b><p>Your goals, your rhythm, your starting point.</p></div></div><div class="flow-item"><span class="flow-num">02</span><div><b>Get a plan that makes sense</b><p>A practical next step based on your answers.</p></div></div><div class="flow-item"><span class="flow-num">03</span><div><b>Build your routine on iPhone</b><p>Keep going with Weekly Finances.</p></div></div></div>`;
+}
+
+function aside(current) {
+  return `<aside class="quiz-aside"><span class="eyebrow">A CLEARER WEEK</span><h2>A plan around<br>your real life.</h2><p>A few small questions.<br>One useful starting point.</p><ol class="step-list">${questions.map((q,i)=>`<li class="${i<current?'done':i===current?'active':''}" ${i===current?'aria-current="step"':''}><span class="dot">${i<current?'✓':i+1}</span>${q.category}</li>`).join('')}</ol><p class="aside-caption">No bank login. No email.<br>Just a little perspective.</p></aside>`;
+}
+
+function progress(current) {
+  return `<div class="quiz-top"><button class="back-button" id="go-back" aria-label="Previous step">${icon('back')}</button><div class="progress-wrap"><div class="progress-info"><span>${current<7?questions[current].category:'Your weekly plan'}</span><span>${Math.min(current+1,7)} of 7</span></div><div class="progress-track" role="progressbar" aria-label="Quiz progress" aria-valuemin="0" aria-valuemax="7" aria-valuenow="${Math.min(current,7)}"><span style="width:${Math.min(current,7)/7*100}%"></span></div></div></div>`;
+}
+
+function numbersMarkup() {
+  const fields = [['income','Take-home income','After tax, in a typical month.','4000'],['essentials','Bills & committed spending','Rent, food, repayments and other planned costs.','2200'],['savings','Planned savings','Money you want to set aside each month.','300']];
+  return `<form id="money-form" novalidate><div class="money-fields">${fields.map(([key,label,help,placeholder])=>`<div class="money-field"><label for="${key}"><span>${label}<small id="${key}-help">${help}</small></span><span class="input-wrap"><span aria-hidden="true">${markets[market].symbol}</span><input type="number" inputmode="decimal" id="${key}" name="${key}" min="0" max="1000000000000" step="any" autocomplete="off" aria-describedby="${key}-help" placeholder="${placeholder}" value="${answers.numbers?.[key] ?? ''}"></span></label></div>`).join('')}</div><p class="field-note">All figures are per month, in ${markets[market].currency}. An estimate is enough. This is a planning illustration, not a safe-to-spend recommendation.</p><p class="error" id="number-error" role="alert" hidden></p><div class="question-actions"><button type="button" class="text-button" id="skip-numbers">Skip for now</button><button type="submit" class="primary">Continue ${icon('arrow')}</button></div></form>`;
+}
+
+function questionMarkup(index) {
+  const q = questions[index];
+  return `<div class="quiz-layout">${aside(index)}<section class="question fade-in">${progress(index)}<div class="question-icon">${icon(q.icon)}</div><h1>${q.title}</h1><p class="question-subtitle">${q.subtitle}</p>${q.type === 'numbers' ? numbersMarkup() : `<div class="options" role="group" aria-label="${q.title}">${q.options.map(([value,label,help,ic])=>`<button class="option" type="button" data-answer="${value}" aria-pressed="${answers[q.id]===value}"><span class="option-icon">${icon(ic)}</span><span class="option-copy"><b>${label}</b><small>${help}</small></span><span class="choice-circle">${icon('check')}</span></button>`).join('')}</div><div class="question-actions"><span class="step-tip">${index===0?'One choice is all you need.':'You can go back and change any answer.'}</span><button class="primary" id="next-step" ${!answers[q.id]?'disabled':''}>${index===6?'See my plan':'Continue'} ${icon('arrow')}</button></div>`}</section></div>`;
+}
+
+function verifyMarkup() {
+  return `<div class="quiz-layout">${aside(7)}<section class="question fade-in">${progress(7)}<div class="question-icon">${icon('check')}</div><h1>Your next week,<br>with a little more clarity.</h1><p class="question-subtitle">Your answers are in. Your weekly routine is ready to explore.</p><div class="verification"><h2>${config.preview?'Your plan preview is ready':'One quick check'}</h2>${config.preview?'<p class="preview-note">This is a design preview. Yandex SmartCaptcha is not connected, and no human verification has taken place.</p>':config.captchaReady?'<p>Complete the Yandex SmartCaptcha check to see your personalised plan.</p><div id="captcha-container" class="captcha-container"></div>':'<p>Verification is temporarily unavailable. Your answers remain in this tab. Please try again later.</p>'}<p id="captcha-error" class="error" role="alert" hidden></p><button id="show-plan" class="primary" ${!config.preview?'disabled':''}>${config.preview?'View preview plan':'Show my weekly plan'} ${icon('arrow')}</button></div><p class="field-note">No account is created. Optional amounts stay in your browser tab.</p></section></div>`;
+}
+
+function resultMarkup() {
+  const plan = makePlan(answers);
+  const estimate = plan.estimate;
+  const negative = estimate?.weekly < 0;
+  const amountPanel = estimate ? `<div class="estimate-card"><span class="eyebrow">${negative?'A GAP TO PLAN AROUND':'YOUR ILLUSTRATIVE WEEKLY ROOM'}</span><div class="estimate-amount">${formatMoney(Math.abs(estimate.weekly))}<small> / week</small></div><p>${negative?'Your planned monthly costs and savings exceed the income you entered. Review commitments before setting a spending target.':`After the monthly bills and savings you entered. This does not account for payment timing or costs you have not included.`}</p><p style="margin-top:10px">(${formatMoney(answers.numbers.income)} − ${formatMoney(answers.numbers.essentials)} − ${formatMoney(answers.numbers.savings)}) × 12 ÷ 52. Monthly averages, not a cash-flow forecast.</p></div>` : `<div class="estimate-card"><span class="eyebrow">YOUR STARTING POINT</span><div class="estimate-amount" style="font-size:31px;letter-spacing:-1px">One week at a time.</div><p>You skipped the amounts. Start with a balance snapshot, then add planned income and expenses when you are ready.</p></div>`;
+  return `<section class="result-layout fade-in"><div class="result-heading"><div class="result-check">${icon('check')}</div><span class="eyebrow">YOUR PERSONALISED STARTING POINT</span><h1>${plan.name}</h1><p>${plan.line}</p></div><div class="result-grid"><div class="plan-card"><h2>Your next three small steps</h2><p class="plan-why">${plan.why}</p>${plan.steps.map((step,i)=>`<div class="plan-step"><span class="step-number">${i+1}</span><div><small>${step.when}</small><h3>${step.title}</h3><p>${step.body}</p></div></div>`).join('')}</div><div>${amountPanel}<div class="store-card"><div class="store-brand"><img src="/assets/app-icon.webp" alt=""><div><b>Weekly Finances</b><small>Weekly money planning for iPhone</small></div></div><p>Bring this routine into your week. Track balances, plan recurring expenses and look ahead in one place.</p><a class="primary" id="app-store-link" href="${storeUrl(market,config.appStoreCampaignUrl)}" target="_blank" rel="noopener noreferrer">${apple}Get Weekly Finances ${icon('arrow')}</a><p class="price-note">Free to download · Optional Premium subscription.</p><p class="price-note">${market==='US'?'US App Store lists $1.99/month or $19.99/year. Prices and terms shown by Apple at purchase apply.':'Local availability, prices and subscription terms are shown in your App Store.'}</p><p class="price-note">Your quiz answers do not transfer to the app. Set up your plan after installing.</p></div></div></div><div class="result-foot"><button class="text-button" id="start-again">Start again</button><p>A suggested routine based on your answers, not a financial assessment. Estimates use the figures you entered. Results are not guaranteed.</p></div></section>`;
+}
+
+function bindQuestion(index) {
+  const q = questions[index];
+  $('#go-back').onclick = () => navigate(index === 0 ? 'home' : index-1);
+  if (q.type === 'numbers') {
+    $('#skip-numbers').onclick=()=>{answers.numbers=null;track('quiz_answer',index);navigate(index+1);};
+    $('#money-form').onsubmit=e=>{
+      e.preventDefault();
+      const raw = ['income','essentials','savings'].map(k=>$('#'+k).value.trim());
+      const values = raw.map(Number);
+      if (raw.some(v=>!v) || values.some(v=>!Number.isFinite(v)||v<0||v>1e12) || values[0]===0) {
+        $('#number-error').hidden=false;$('#number-error').textContent='Enter all three monthly amounts (use 0 where needed), with income above 0. Or choose “Skip for now”.';return;
+      }
+      answers.numbers=Object.fromEntries(['income','essentials','savings'].map((key,i)=>[key,values[i]]));
+      track('quiz_answer',index);navigate(index+1);
+    };
+  } else {
+    document.querySelectorAll('[data-answer]').forEach(button=>button.onclick=()=>{
+      answers[q.id]=button.dataset.answer;
+      document.querySelectorAll('[data-answer]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+      $('#next-step').disabled=false;
+    });
+    $('#next-step').onclick=()=>{if(!answers[q.id])return;track('quiz_answer',index);navigate(index===6?'verify':index+1);};
+  }
+}
+
+async function mountCaptcha(version) {
+  if (config.preview || !config.captchaReady) return;
+  try {
+    if (!window.smartCaptcha) await new Promise((resolve,reject)=>{
+      const script=document.createElement('script');script.src='https://smartcaptcha.cloud.yandex.ru/captcha.js?render=onload';script.async=true;
+      script.onload=resolve;script.onerror=()=>reject(new Error('load'));document.head.append(script);
+    });
+    if(screen!=='verify'||version!==renderVersion)return;
+    captchaId=window.smartCaptcha.render('captcha-container',{sitekey:config.captchaClientKey,hl:'en',callback:token=>{
+      captchaToken=token;$('#show-plan').disabled=!token;$('#captcha-error').hidden=true;
+    }});
+    for (const event of ['token-expired','network-error','javascript-error']) window.smartCaptcha.subscribe(captchaId,event,()=>{
+      if(screen!=='verify')return;captchaToken='';$('#show-plan').disabled=true;
+      $('#captcha-error').hidden=false;$('#captcha-error').textContent=event==='token-expired'?'Your check expired. Please complete it again.':'Verification could not load. Please check your connection and try again.';
+    });
+  } catch {if(screen==='verify'){ $('#captcha-error').hidden=false;$('#captcha-error').textContent='Verification could not load. Check your connection and try again.'; }}
+}
+
+async function complete() {
+  if(busy||(!config.preview&&!captchaToken))return;
+  if (staticPreview && config.preview) { track('quiz_complete');navigate('result');return; }
+  busy=true;const button=$('#show-plan');button.disabled=true;button.textContent='Preparing your plan…';
+  try {
+    const response=await fetch('/api/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:captchaToken}),signal:AbortSignal.timeout(15000)});
+    const result=await response.json();
+    if(!response.ok||!result.ok)throw new Error(result.error||'Verification failed. Please try again.');
+    if(result.verified)track('captcha_verified');
+    track('quiz_complete');busy=false;navigate('result');
+  } catch(error) {
+    if (screen !== 'verify') { busy=false;return; }
+    $('#captcha-error').hidden=false;$('#captcha-error').textContent=error.name==='TimeoutError'?'The check timed out. Please try again.':error.message;
+    captchaToken='';if(captchaId!==null)window.smartCaptcha?.reset(captchaId);
+    button.textContent=config.preview?'View preview plan':'Show my weekly plan';button.disabled=!config.preview;busy=false;
+  }
+}
+
+function render() {
+  renderVersion++;
+  $('.market-control').hidden=screen!=='home';$('#locked-market').hidden=screen==='home';$('#locked-market').textContent=markets[market].currency;
+  if (screen==='home') {main.innerHTML=hero();$('#start-quiz').onclick=()=>{track('quiz_start');navigate(0);};}
+  else if (screen==='verify') {main.innerHTML=verifyMarkup();$('#go-back').onclick=()=>navigate(6);$('#show-plan').onclick=complete;mountCaptcha(renderVersion);}
+  else if (screen==='result') {
+    main.innerHTML=resultMarkup();
+    $('#app-store-link').onclick=()=>track('app_store_click');
+    $('#start-again').onclick=()=>{answers={};navigate('home');};
+  } else {main.innerHTML=questionMarkup(screen);bindQuestion(screen);track('quiz_step_view',screen);}
+}
+
+$('#market').value=market;
+$('#market').onchange=e=>{market=e.target.value;answers={};const url=new URL(location.href);url.searchParams.set('market',market);history.replaceState({quizScreen:'home'},'',url);render();};
+$('#privacy-button').onclick=()=>$('#privacy-dialog').showModal();
+$('.dialog-close').onclick=()=>$('#privacy-dialog').close();
+$('.brand').onclick=e=>{e.preventDefault();if(busy)return;answers={};navigate('home');};
+window.addEventListener('popstate',e=>{
+  if (busy) { history.pushState({quizScreen:screen},'',location.href); return; }
+  let next=e.state?.quizScreen ?? 'home';
+  if(next!=='home' && !answers.goal)next='home';
+  navigate(next,false);
+});
+history.replaceState({quizScreen:'home'},'',location.href);
+
+try {
+  if(staticPreview)throw new Error('static preview');
+  const response=await fetch('/api/config',{signal:AbortSignal.timeout(7000)});
+  if(!response.ok)throw new Error();config=await response.json();
+} catch {config={preview:staticPreview,captchaReady:false};}
+$('#preview-banner').hidden=!config.preview;
+if (config.metricaId && !config.preview) {
+  let preference;try{preference=localStorage.getItem('wf-analytics-consent');}catch{}
+  if(preference==='allow')startAnalytics();else if(preference!=='decline')$('#analytics-choice').hidden=false;
+  $('#accept-analytics').onclick=()=>{try{localStorage.setItem('wf-analytics-consent','allow');}catch{}$('#analytics-choice').hidden=true;startAnalytics();};
+  $('#decline-analytics').onclick=()=>{try{localStorage.setItem('wf-analytics-consent','decline');}catch{}$('#analytics-choice').hidden=true;};
+}
+track('quiz_view');render();

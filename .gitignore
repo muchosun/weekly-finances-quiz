@@ -1,0 +1,10 @@
+*.zip
+.DS_Store
+.env
+.env.*
+!**/.env.example
+**/node_modules/
+weekly-finances-quiz/preview.html
+weekly-finances-quiz/pages/
+weekly-finances-quiz/qa/
+weekly-finances-quiz/docs/
