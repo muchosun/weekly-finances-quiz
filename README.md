@@ -1,6 +1,6 @@
 # Weekly Finances Quiz
 
-An English, mobile-friendly acquisition quiz inspired by the iOS app Weekly Finances. Seven questions lead to a suggested weekly money routine, an optional weekly budget illustration, and an App Store link.
+An English, mobile-friendly acquisition quiz inspired by the iOS app Weekly Finances. Seven questions lead to a suggested weekly money routine, an optional weekly budget illustration, and an App Store link. Selecting an answer advances automatically; the optional amount form keeps an explicit Continue or Skip action. Back preserves answers.
 
 **[Open the test site](https://muchosun.github.io/weekly-finances-quiz/)**
 
@@ -38,6 +38,10 @@ Tests and the build were run locally before publication. An optional deployment 
 - `weekly-finances-quiz/server.mjs`: optional Node server for the live API.
 - `weekly-finances-quiz/captcha.mjs`: Yandex SmartCaptcha token and host validation.
 - `weekly-finances-quiz/tests/`: calculation, result, link and verification tests.
+
+## Next iteration
+
+[Issue #1](https://github.com/muchosun/weekly-finances-quiz/issues/1) covers intermediate fact cards with traceable sources, personal visualisations and generated illustrations of people and financial routines. These additions are planned and are not part of the current preview.
 
 ## Live verification
 

@@ -28,6 +28,7 @@ let captchaId = null;
 let captchaToken = '';
 let renderVersion = 0;
 let busy = false;
+let lastChoiceAt = 0;
 let analyticsEnabled = false;
 const funnelEvents = [];
 const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_complete','captcha_verified','app_store_click']);
@@ -84,7 +85,7 @@ function numbersMarkup() {
 
 function questionMarkup(index) {
   const q = questions[index];
-  return `<div class="quiz-layout">${aside(index)}<section class="question fade-in">${progress(index)}<div class="question-icon">${icon(q.icon)}</div><h1>${q.title}</h1><p class="question-subtitle">${q.subtitle}</p>${q.type === 'numbers' ? numbersMarkup() : `<div class="options" role="group" aria-label="${q.title}">${q.options.map(([value,label,help,ic])=>`<button class="option" type="button" data-answer="${value}" aria-pressed="${answers[q.id]===value}"><span class="option-icon">${icon(ic)}</span><span class="option-copy"><b>${label}</b><small>${help}</small></span><span class="choice-circle">${icon('check')}</span></button>`).join('')}</div><div class="question-actions"><span class="step-tip">${index===0?'One choice is all you need.':'You can go back and change any answer.'}</span><button class="primary" id="next-step" ${!answers[q.id]?'disabled':''}>${index===6?'See my plan':'Continue'} ${icon('arrow')}</button></div>`}</section></div>`;
+  return `<div class="quiz-layout">${aside(index)}<section class="question fade-in">${progress(index)}<div class="question-icon">${icon(q.icon)}</div><h1>${q.title}</h1><p class="question-subtitle">${q.subtitle}</p>${q.type === 'numbers' ? numbersMarkup() : `<div class="options" role="group" aria-label="${q.title}" aria-describedby="choice-help">${q.options.map(([value,label,help,ic])=>`<button class="option" type="button" data-answer="${value}" aria-pressed="${answers[q.id]===value}"><span class="option-icon">${icon(ic)}</span><span class="option-copy"><b>${label}</b><small>${help}</small></span><span class="choice-circle">${icon('check')}</span></button>`).join('')}</div><p class="field-note" id="choice-help">Choose an answer to continue automatically. You can go back anytime.</p>`}</section></div>`;
 }
 
 function verifyMarkup() {
@@ -115,12 +116,18 @@ function bindQuestion(index) {
       track('quiz_answer',index);navigate(index+1);
     };
   } else {
+    let advancing = false;
+    const version = renderVersion;
     document.querySelectorAll('[data-answer]').forEach(button=>button.onclick=()=>{
+      if (advancing || Date.now() - lastChoiceAt < 350) return;
+      advancing = true;
+      lastChoiceAt = Date.now();
       answers[q.id]=button.dataset.answer;
-      document.querySelectorAll('[data-answer]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
-      $('#next-step').disabled=false;
+      document.querySelectorAll('[data-answer]').forEach(b=>{b.setAttribute('aria-pressed',String(b===button));b.disabled=true;});
+      track('quiz_answer',index);
+      // Brief selection feedback; ignore a second tap and stale transitions after Back.
+      setTimeout(()=>{if(screen===index && renderVersion===version)navigate(index===6?'verify':index+1);},140);
     });
-    $('#next-step').onclick=()=>{if(!answers[q.id])return;track('quiz_answer',index);navigate(index===6?'verify':index+1);};
   }
 }
 
