@@ -1,8 +1,8 @@
 name: Test and publish GitHub Pages
 
+# Optional workflow. The test site currently uses the /docs branch source.
+# Switch the Pages build type back to workflow before running this deployment.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

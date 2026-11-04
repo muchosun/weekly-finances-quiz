@@ -3,8 +3,8 @@ Prepared 4 November 2026. Design preview; no ad spend.
 
 PUBLIC TEST VERSION
 https://muchosun.github.io/weekly-finances-quiz/
-GitHub Pages serves the static preview. The Actions workflow runs tests and
-builds the site on pushes to main. Deployment status is in GitHub Actions.
+GitHub Pages serves the static preview from /docs on main. The optional Actions
+workflow can publish after switching Pages to the workflow build type.
 CAPTCHA and analytics are not active on this public design preview.
 
 QUICK PREVIEW

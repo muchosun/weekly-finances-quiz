@@ -22,7 +22,14 @@ npm run check
 npm run build:pages
 ```
 
-`build:pages` generates a self-contained `pages/index.html` that works under a GitHub Pages project path. Only that output is deployed; server code and environment files are not served. The workflow runs tests before deployment.
+`build:pages` generates a self-contained `pages/index.html` that works under a GitHub Pages project path. The checked-in copy in the root `docs/` folder is the GitHub Pages publishing source on `main`; server code and environment files are not served. To refresh it after edits:
+
+```sh
+cd ..
+cp weekly-finances-quiz/pages/index.html docs/index.html
+```
+
+Tests and the build were run locally before publication. An optional deployment workflow is included for use after switching the Pages build type to GitHub Actions. GitHub Actions in the current publishing account reported a billing lock at the time of initial setup.
 
 ## Source
 
