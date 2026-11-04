@@ -1,4 +1,5 @@
 import { questions, markets, makePlan, storeUrl } from './quiz-model.mjs';
+import { interludes, facts, survey, afterQuestion, beforeQuestion, budgetSnapshot } from './interlude-model.mjs';
 
 const paths = {
   arrow:'M4 12h16m-6-6 6 6-6 6', back:'M20 12H4m6-6-6 6 6 6', check:'m5 12 4 4L19 6',
@@ -29,15 +30,16 @@ let captchaToken = '';
 let renderVersion = 0;
 let busy = false;
 let lastChoiceAt = 0;
+let insightState = {guess:null,period:'weekly',stepOpen:false};
 let analyticsEnabled = false;
 const funnelEvents = [];
-const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_complete','captcha_verified','app_store_click']);
+const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_complete','captcha_verified','app_store_click','interlude_view','interlude_continue','interlude_skip','insight_reveal','budget_toggle']);
 const campaign = Object.fromEntries(['utm_source','utm_medium','utm_campaign','utm_content','utm_term','yclid'].filter(k=>params.has(k)).map(k=>[k,params.get(k).slice(0,250)]));
 const formatMoney = value => new Intl.NumberFormat(markets[market].locale,{style:'currency',currency:markets[market].currency,maximumFractionDigits:0}).format(value);
 
-function track(name, step) {
+function track(name, step, card) {
   if (!allowedEvents.has(name)) return;
-  const event = { name, market, ...(Number.isInteger(step) ? { step: step + 1 } : {}) };
+  const event = { name, market, flow_version:'insights-v1', ...(Number.isInteger(step) ? { step: step + 1 } : {}), ...(interludes.some(item=>item.id===card)?{card}:{}) };
   funnelEvents.push(event);
   if (analyticsEnabled && typeof window.ym === 'function') window.ym(config.metricaId,'reachGoal',name,{...event, ...campaign});
 }
@@ -74,8 +76,67 @@ function aside(current) {
   return `<aside class="quiz-aside"><span class="eyebrow">A CLEARER WEEK</span><h2>A plan around<br>your real life.</h2><p>A few small questions.<br>One useful starting point.</p><ol class="step-list">${questions.map((q,i)=>`<li class="${i<current?'done':i===current?'active':''}" ${i===current?'aria-current="step"':''}><span class="dot">${i<current?'✓':i+1}</span>${q.category}</li>`).join('')}</ol><p class="aside-caption">No bank login. No email.<br>Just a little perspective.</p></aside>`;
 }
 
-function progress(current) {
-  return `<div class="quiz-top"><button class="back-button" id="go-back" aria-label="Previous step">${icon('back')}</button><div class="progress-wrap"><div class="progress-info"><span>${current<7?questions[current].category:'Your weekly plan'}</span><span>${Math.min(current+1,7)} of 7</span></div><div class="progress-track" role="progressbar" aria-label="Quiz progress" aria-valuemin="0" aria-valuemax="7" aria-valuenow="${Math.min(current,7)}"><span style="width:${Math.min(current,7)/7*100}%"></span></div></div></div>`;
+function progress(current,insight=false) {
+  return `<div class="quiz-top"><button class="back-button" id="go-back" aria-label="Previous step">${icon('back')}</button><div class="progress-wrap"><div class="progress-info"><span>${insight?'A moment of perspective':current<7?questions[current].category:'Your weekly plan'}</span><span>${insight?`${current} of 7 answered`:`${Math.min(current+1,7)} of 7`}</span></div><div class="progress-track" role="progressbar" aria-label="Quiz progress" aria-valuemin="0" aria-valuemax="7" aria-valuenow="${Math.min(current,7)}"><span style="width:${Math.min(current,7)/7*100}%"></span></div></div></div>`;
+}
+
+function factSource(){
+  return `<details class="fact-source"><summary>Federal Reserve · US adults · 2025 ${icon('arrow')}</summary><p>SHED 2025 · ${survey.sample.toLocaleString('en-US')} respondents · weighted estimates for US civilian, noninstitutionalised adults aged 18+. Fieldwork: ${survey.fieldwork}. Published ${survey.publication}.</p><div><a href="${survey.reportUrl}" target="_blank" rel="noopener noreferrer">Read the finding ↗</a><a href="${survey.methodUrl}" target="_blank" rel="noopener noreferrer">Survey methods ↗</a></div></details>`;
+}
+
+function budgetMarkup(){
+  const example=!budgetSnapshot(answers.numbers);
+  const data=budgetSnapshot(example?{income:4000,essentials:2200,savings:300}:answers.numbers,insightState.period);
+  const rows=[['income','Income'],['essentials','Planned costs'],['savings','Planned savings'],['room',data.room<0?'Gap to plan around':'Room in the plan']];
+  const largest=Math.max(...rows.map(([key])=>Math.abs(data[key])));
+  return `<div class="budget-context">${example?'Example figures · you skipped the amounts':'Your figures · kept in this browser tab'} · ${markets[market].currency}</div><div class="period-switch" role="group" aria-label="View budget by period"><button type="button" data-period="monthly" aria-pressed="${insightState.period==='monthly'}">Per month</button><button type="button" data-period="weekly" aria-pressed="${insightState.period==='weekly'}">Per week</button></div><div class="budget-rows">${rows.map(([key,label])=>`<div class="budget-row ${key==='room'?'budget-room':''} ${data[key]<0?'is-gap':''}"><div><span>${label}</span><strong>${formatMoney(data[key])}</strong></div><div class="budget-bar" aria-hidden="true"><span class="bar-${key}" style="width:${Math.abs(data[key])/largest*100}%"></span></div></div>`).join('')}</div><p class="insight-fine">Weekly averages = monthly amounts × 12 ÷ 52. Displayed figures are rounded. Payment dates can change your cash flow.</p>`;
+}
+
+function interludeMarkup(item){
+  const position=interludes.indexOf(item)+1;
+  const personal={clarity:'You chose spending clarity. Separate planned costs and savings before looking at what remains.',bills:'You chose staying ahead of bills. Their payment dates matter as much as their amounts.',dream:'You chose making room for a goal. A planned savings amount can give it a place in your week.',future:'You chose the bigger picture. A weekly average is a starting point for looking ahead.'}[answers.goal];
+  let content;
+  if(item.id==='perspective'){
+    content=`<span class="eyebrow">A LITTLE PERSPECTIVE · ${position} / 3</span><h1>A small surprise can change a week.</h1><p class="interlude-intro">What share of US adults said they would pay an unexpected $400 expense with cash or its equivalent?</p><div class="guess-options" role="group" aria-label="Guess the reported share">${[43,63,83].map(value=>`<button type="button" data-guess="${value}" aria-pressed="${insightState.guess===value}">${value}<span>%</span></button>`).join('')}</div><div id="fact-reveal" class="fact-reveal" aria-live="polite" ${insightState.guess===null?'hidden':''}><div class="fact-feedback">${insightState.guess===63?'You’ve got it.':'A useful reality check.'}</div><div class="stat-number">${facts.emergency.percent}<span>%</span></div><p>${facts.emergency.text}</p><p class="insight-fine">${facts.emergency.detail}</p></div><button class="text-button reveal-fact" id="reveal-fact" ${insightState.guess!==null?'hidden':''}>Reveal the finding</button>${factSource()}`;
+  }else if(item.id==='week'){
+    content=`<span class="eyebrow">YOUR WEEK, IN FOCUS · ${position} / 3</span><h1>Your month.<br>A clearer weekly view.</h1><p class="interlude-intro">${personal}</p><div class="budget-explorer" id="budget-explorer" aria-live="polite">${budgetMarkup()}</div>`;
+  }else{
+    const plan=makePlan(answers);
+    content=`<span class="eyebrow">ONE SMALL NEXT STEP · ${position} / 3</span><h1>Give your future<br>a little breathing room.</h1><div class="reserve-fact"><div class="stat-number">${facts.reserve.percent}<span>%</span></div><p>${facts.reserve.text}</p><div class="people-grid" aria-hidden="true">${Array.from({length:20},(_,i)=>`<i class="${i<11?'filled':''}"></i>`).join('')}</div><span class="insight-fine">11 of 20 dots illustrate the reported 55%.</span></div>${factSource()}<button class="step-reveal-button" id="reveal-step" aria-expanded="${insightState.stepOpen}" aria-controls="first-step">${icon('spark')} Show my first small step <span>＋</span></button><div class="first-step" id="first-step" ${!insightState.stepOpen?'hidden':''}><span>Suggested from your answers · Today</span><h2>${plan.steps[0].title}</h2><p>${plan.steps[0].body}</p></div>`;
+  }
+  return `<section class="interlude-layout fade-in">${progress(item.after+1,true)}<div class="interlude-split"><div class="interlude-art"><img src="${item.image}" alt="${item.alt}" width="1120" height="840" loading="eager"><div class="art-cue">${icon('spark')}<span>${item.caption}</span></div></div><div class="interlude-content">${content}<div class="interlude-actions"><button type="button" class="text-button" id="skip-interlude">Skip this insight</button><button type="button" class="primary" id="continue-interlude">Continue ${icon('arrow')}</button></div></div></div></section>`;
+}
+
+function bindInterlude(item){
+  $('#go-back').onclick=()=>navigate(item.after);
+  const leave=skip=>{track(skip?'interlude_skip':'interlude_continue',undefined,item.id);lastChoiceAt=Date.now();navigate(item.next);};
+  $('#skip-interlude').onclick=()=>leave(true);
+  $('#continue-interlude').onclick=()=>leave(false);
+  if(item.id==='perspective'){
+    const reveal=value=>{
+      insightState.guess=value;
+      document.querySelectorAll('[data-guess]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.guess)===value)));
+      $('#fact-reveal').hidden=false;$('#reveal-fact').hidden=true;
+      $('.fact-feedback').textContent=value===63?'You’ve got it.':'A useful reality check.';
+      track('insight_reveal',undefined,item.id);
+    };
+    document.querySelectorAll('[data-guess]').forEach(button=>button.onclick=()=>reveal(Number(button.dataset.guess)));
+    $('#reveal-fact').onclick=()=>reveal('revealed');
+  }else if(item.id==='week'){
+    const bindPeriods=()=>document.querySelectorAll('[data-period]').forEach(button=>button.onclick=()=>{
+      insightState.period=button.dataset.period;
+      $('#budget-explorer').innerHTML=budgetMarkup();bindPeriods();
+      document.querySelector(`[data-period="${insightState.period}"]`).focus({preventScroll:true});
+      track('budget_toggle',undefined,item.id);
+    });bindPeriods();
+  }else{
+    $('#reveal-step').onclick=()=>{
+      insightState.stepOpen=!insightState.stepOpen;
+      $('#first-step').hidden=!insightState.stepOpen;
+      $('#reveal-step').setAttribute('aria-expanded',String(insightState.stepOpen));
+      if(insightState.stepOpen)track('insight_reveal',undefined,item.id);
+    };
+  }
 }
 
 function numbersMarkup() {
@@ -102,9 +163,9 @@ function resultMarkup() {
 
 function bindQuestion(index) {
   const q = questions[index];
-  $('#go-back').onclick = () => navigate(index === 0 ? 'home' : index-1);
+  $('#go-back').onclick = () => navigate(beforeQuestion(index));
   if (q.type === 'numbers') {
-    $('#skip-numbers').onclick=()=>{answers.numbers=null;track('quiz_answer',index);navigate(index+1);};
+    $('#skip-numbers').onclick=()=>{answers.numbers=null;track('quiz_answer',index);navigate(afterQuestion(index));};
     $('#money-form').onsubmit=e=>{
       e.preventDefault();
       const raw = ['income','essentials','savings'].map(k=>$('#'+k).value.trim());
@@ -113,7 +174,7 @@ function bindQuestion(index) {
         $('#number-error').hidden=false;$('#number-error').textContent='Enter all three monthly amounts (use 0 where needed), with income above 0. Or choose “Skip for now”.';return;
       }
       answers.numbers=Object.fromEntries(['income','essentials','savings'].map((key,i)=>[key,values[i]]));
-      track('quiz_answer',index);navigate(index+1);
+      track('quiz_answer',index);navigate(afterQuestion(index));
     };
   } else {
     let advancing = false;
@@ -126,7 +187,7 @@ function bindQuestion(index) {
       document.querySelectorAll('[data-answer]').forEach(b=>{b.setAttribute('aria-pressed',String(b===button));b.disabled=true;});
       track('quiz_answer',index);
       // Brief selection feedback; ignore a second tap and stale transitions after Back.
-      setTimeout(()=>{if(screen===index && renderVersion===version)navigate(index===6?'verify':index+1);},140);
+      setTimeout(()=>{if(screen===index && renderVersion===version)navigate(afterQuestion(index));},140);
     });
   }
 }
@@ -171,19 +232,20 @@ function render() {
   renderVersion++;
   $('.market-control').hidden=screen!=='home';$('#locked-market').hidden=screen==='home';$('#locked-market').textContent=markets[market].currency;
   if (screen==='home') {main.innerHTML=hero();$('#start-quiz').onclick=()=>{track('quiz_start');navigate(0);};}
+  else if(interludes.some(item=>item.screen===screen)){const item=interludes.find(item=>item.screen===screen);main.innerHTML=interludeMarkup(item);bindInterlude(item);track('interlude_view',undefined,item.id);}
   else if (screen==='verify') {main.innerHTML=verifyMarkup();$('#go-back').onclick=()=>navigate(6);$('#show-plan').onclick=complete;mountCaptcha(renderVersion);}
   else if (screen==='result') {
     main.innerHTML=resultMarkup();
     $('#app-store-link').onclick=()=>track('app_store_click');
-    $('#start-again').onclick=()=>{answers={};navigate('home');};
+    $('#start-again').onclick=()=>{answers={};insightState={guess:null,period:'weekly',stepOpen:false};navigate('home');};
   } else {main.innerHTML=questionMarkup(screen);bindQuestion(screen);track('quiz_step_view',screen);}
 }
 
 $('#market').value=market;
-$('#market').onchange=e=>{market=e.target.value;answers={};const url=new URL(location.href);url.searchParams.set('market',market);history.replaceState({quizScreen:'home'},'',url);render();};
+$('#market').onchange=e=>{market=e.target.value;answers={};insightState={guess:null,period:'weekly',stepOpen:false};const url=new URL(location.href);url.searchParams.set('market',market);history.replaceState({quizScreen:'home'},'',url);render();};
 $('#privacy-button').onclick=()=>$('#privacy-dialog').showModal();
 $('.dialog-close').onclick=()=>$('#privacy-dialog').close();
-$('.brand').onclick=e=>{e.preventDefault();if(busy)return;answers={};navigate('home');};
+$('.brand').onclick=e=>{e.preventDefault();if(busy)return;answers={};insightState={guess:null,period:'weekly',stepOpen:false};navigate('home');};
 window.addEventListener('popstate',e=>{
   if (busy) { history.pushState({quizScreen:screen},'',location.href); return; }
   let next=e.state?.quizScreen ?? 'home';

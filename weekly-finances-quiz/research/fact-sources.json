@@ -1,0 +1,30 @@
+{
+  "verified_at": "2026-11-04",
+  "report": "Economic Well-Being of U.S. Households in 2025, May 2026",
+  "publisher": "Board of Governors of the Federal Reserve System",
+  "url": "https://www.federalreserve.gov/publications/2026-economic-well-being-of-us-households-in-2025-savings-investments.htm",
+  "methodology_url": "https://www.federalreserve.gov/publications/2026-economic-well-being-of-us-households-in-2025-description.htm",
+  "population": "US civilian noninstitutionalized adults aged 18 and over",
+  "fieldwork": "2025-10-17 to 2025-10-28",
+  "final_sample_n": 12934,
+  "method": "Ipsos KnowledgePanel probability-based online survey; published estimates use post-stratification weights",
+  "facts": [
+    {
+      "id": "emergency",
+      "value_percent": 63,
+      "definition": "Adults saying they would pay a hypothetical $400 unexpected expense exclusively with cash, savings, or a credit card paid off at the next statement",
+      "locator": "Emergency Savings and Unexpected Expenses; first paragraph describing the hypothetical $400 expense; Figure 24",
+      "qualification": "Would pay this way is not the same as being able to pay this way. The remaining 37% are not all unable to cover the expense."
+    },
+    {
+      "id": "reserve",
+      "value_percent": 55,
+      "definition": "Adults reporting money set aside in an emergency/rainy-day fund to cover three months of expenses",
+      "locator": "Emergency Savings and Unexpected Expenses; paragraph beginning Some financial challenges; Table 27 overall row",
+      "qualification": "Self-report about savings; not a verified balance or a prescribed personal savings target."
+    }
+  ],
+  "usage": "Country and year appear with each finding. These are US survey findings, not global statistics, product results, user matches or evidence that this app changes savings.",
+  "design_reference": "https://claude.ai/artifact/BdStTMUfbJYWYr3BNygZys#play-9c05724ecb36",
+  "design_reference_usage": "Visual hierarchy, orange and graphite palette, and the weekly-planning narrative only. Unverified product claims in the reference were not adopted."
+}

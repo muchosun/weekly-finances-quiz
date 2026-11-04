@@ -2,7 +2,11 @@
 
 An English, mobile-friendly acquisition quiz inspired by the iOS app Weekly Finances. Seven questions lead to a suggested weekly money routine, an optional weekly budget illustration, and an App Store link. Selecting an answer advances automatically; the optional amount form keeps an explicit Continue or Skip action. Back preserves answers.
 
+Three optional interludes add a sourced fact-reveal interaction, a monthly/weekly budget explorer, and a personalised first-step reveal with generated human illustrations.
+
 **[Open the test site](https://muchosun.github.io/weekly-finances-quiz/)**
+
+[Original version without interludes](https://muchosun.github.io/weekly-finances-quiz/classic/) is preserved for manual comparison. Traffic is not randomly split; this is not an A/B experiment.
 
 The GitHub Pages version is a **design preview**. Live CAPTCHA verification, analytics, purchases, and advertising campaigns are not enabled. Optional financial amounts stay in the browser tab and reset on reload. The result is a rule-based routine, not a financial assessment. Quiz answers do not transfer to the app.
 
@@ -29,7 +33,7 @@ cd ..
 cp weekly-finances-quiz/pages/index.html docs/index.html
 ```
 
-Tests and the build were run locally before publication. An optional deployment workflow is included for use after switching the Pages build type to GitHub Actions. GitHub Actions in the current publishing account reported a billing lock at the time of initial setup.
+Tests and the build were run locally before publication. An optional deployment workflow is included for use after switching the Pages build type to GitHub Actions.
 
 ## Source
 
@@ -38,10 +42,16 @@ Tests and the build were run locally before publication. An optional deployment 
 - `weekly-finances-quiz/server.mjs`: optional Node server for the live API.
 - `weekly-finances-quiz/captcha.mjs`: Yandex SmartCaptcha token and host validation.
 - `weekly-finances-quiz/tests/`: calculation, result, link and verification tests.
+- `weekly-finances-quiz/research/fact-sources.json`: fact definitions, primary sources, population, fieldwork and sample.
+- `weekly-finances-quiz/creative/illustration-prompts.json`: the three image prompts and generation provenance.
 
-## Next iteration
+## Intermediate screens
 
-[Issue #1](https://github.com/muchosun/weekly-finances-quiz/issues/1) covers intermediate fact cards with traceable sources, personal visualisations and generated illustrations of people and financial routines. These additions are planned and are not part of the current preview.
+After questions 2, 4 and 6, readers can reveal a research finding, switch their budget between monthly and weekly views, and reveal a first step based on their answers. Each interlude has Continue, Skip and Back. The fact panels link to the Federal Reserve's 2025 SHED findings and survey methodology, with the US adult population and survey year shown on the screen.
+
+Personal amounts stay in browser memory. If amounts are skipped, the budget explorer labels all figures as an example; it does not substitute an invented personal budget. Deficits remain visible. None of the population percentages are presented as a personal match, an app result or a causal claim.
+
+The three supporting portraits were generated with the built-in ImageGen tool and converted to compact WebP assets. Prompts are included in the source. [Issue #1](https://github.com/muchosun/weekly-finances-quiz/issues/1) records the original brief.
 
 ## Live verification
 

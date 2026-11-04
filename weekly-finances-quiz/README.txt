@@ -1,5 +1,5 @@
 Weekly Finances — English acquisition quiz
-Prepared 4 November 2026. Design preview; no ad spend.
+Updated 5 November 2026. Design preview; no ad spend.
 
 PUBLIC TEST VERSION
 https://muchosun.github.io/weekly-finances-quiz/
@@ -9,7 +9,8 @@ CAPTCHA and analytics are not active on this public design preview.
 
 QUICK PREVIEW
 Open preview.html in a browser. It is a standalone local design preview.
-It has 7 steps, four goal-based result paths and optional browser-only amounts.
+It has 7 questions, 3 optional interactive insights, four goal-based result paths
+and optional browser-only amounts. Choice questions advance automatically.
 CAPTCHA is clearly marked as not connected. No verification is simulated.
 
 DEVELOPMENT
@@ -25,9 +26,18 @@ FILES
 dist/             browser application
 server.mjs        local / deployable Node HTTP server and public config
 captcha.mjs       Yandex token validation, fail closed
-docs/campaign-draft.json   offline campaign settings and three English ads
-docs/launch-notes.txt      sources, measurement and remaining launch inputs
-qa/               screenshots from desktop and mobile browser checks
+research/fact-sources.json     primary fact sources and methodology
+creative/illustration-prompts.json  prompts and generation provenance
+qa/               local screenshots and verification notes (not published)
+
+INTERMEDIATE SCREENS
+After questions 2, 4 and 6: fact guessing/reveal, monthly/weekly budget switching,
+and a personal first-step reveal. All insights can be skipped or revisited.
+Research figures describe US adults in the 2025 Federal Reserve SHED survey;
+source and methodology links are available on each fact panel.
+Skipped personal amounts produce a clearly labelled example, not a zero budget.
+Generated portraits support the dark/orange visual style; source prompts are
+versioned. The original quiz is preserved at /weekly-finances-quiz/classic/.
 
 LIVE CAPTCHA
 Configure the public client key and private server key in the hosting environment,
