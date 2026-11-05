@@ -10,7 +10,7 @@ Three optional interludes add a sourced fact-reveal interaction, a monthly/weekl
 
 [Original version without interludes](https://muchosun.github.io/weekly-finances-quiz/classic/) is preserved for manual comparison. Traffic is not randomly split; this is not an A/B experiment.
 
-The GitHub Pages version is a **design preview**. The Cloudflare version serves both the quiz and its API through one Worker, with mandatory Turnstile verification and optional, consent-based Yandex Metrica. A missing server secret blocks completion. Purchases are not tracked by this quiz and no advertising spend is activated. Optional financial amounts stay in the browser tab and reset on reload. The result is a rule-based routine, not a financial assessment. Quiz answers do not transfer to the app.
+The GitHub Pages version is a **design preview**. The Cloudflare version serves both the quiz and its API through one Worker, with mandatory Turnstile verification and Yandex Metrica enabled by default without an interruption. Visitors can turn analytics off in Privacy; an explicit saved opt-out is respected. A missing server secret blocks completion. Purchases are not tracked by this quiz. Optional financial amounts stay in the browser tab and reset on reload. The result is a rule-based routine, not a financial assessment. Quiz answers do not transfer to the app.
 
 ## Run locally
 
@@ -71,7 +71,7 @@ The production Worker cannot enter preview mode. Local design preview is limited
 
 ## Analytics
 
-Metrica counter `114081987` has two exact JavaScript goals: `quiz_complete` (ID `678849269`, verified plan displayed) and `app_store_click` (ID `678849315`, outbound App Store click). The script is loaded only after optional analytics consent. No consent banner interrupts the quiz: visitors can enable or withdraw analytics inside the footer’s Privacy dialog. New visitors remain opted out; previously saved choices are respected. Without opt-in, visits and goals are not sent to Metrica, so advertising goal reports cover only opted-in visitors. Webvisor, clickmap, automatic link tracking, automatic goals, ecommerce and Tag Manager are disabled. Financial inputs carry `ym-disable-keys` and the amount form carries `ym-disable-submit`. Quiz values and financial amounts are never sent. A store click is not an app install or a payment.
+Metrica counter `114081987` has two exact JavaScript goals: `quiz_complete` (ID `678849269`, verified plan displayed) and `app_store_click` (ID `678849315`, outbound App Store click). Analytics starts by default on the live site without a popup. The footer’s Privacy dialog explains the collection and allows visitors to turn it off; a saved explicit opt-out prevents script loading and event delivery. Webvisor, clickmap, automatic link tracking, automatic goals, ecommerce and Tag Manager are disabled. Financial inputs carry `ym-disable-keys` and the amount form carries `ym-disable-submit`. Quiz values and financial amounts are never sent. A store click is not an app install or a payment.
 
 Advertising settings and budgets are kept outside this public source. Campaign launch and payment attribution require separate operational verification.
 
@@ -84,7 +84,7 @@ Original source code is licensed under MIT. The Weekly Finances name and app ico
 
 The HTML head requests Apple's native Smart App Banner with `apple-itunes-app` / app ID `6756235224`. Safari controls whether it appears, compatibility, dismissal and its App Store/Open action. The page cannot force its display on a particular quiz step. No app argument or affiliate/provider token is fabricated, and quiz answers are not passed to the app.
 
-On the result screen, a separate Weekly Finances banner offers the existing App Store link. It is dismissible, stays dismissed in the current tab, hides on other quiz steps and is independent of optional analytics settings. The page reserves space so the floating card does not prevent access to footer controls. Its link uses the same validated, market-aware App Store URL and the existing `app_store_click` goal with `placement=result_banner`; the original card uses `placement=result_card`. Tracking still requires consent.
+On the result screen, a separate Weekly Finances banner offers the existing App Store link. It is dismissible, stays dismissed in the current tab, hides on other quiz steps and is independent of analytics settings. The page reserves space so the floating card does not prevent access to footer controls. Its link uses the same validated, market-aware App Store URL and the existing `app_store_click` goal with `placement=result_banner`; the original card uses `placement=result_card`. Tracking runs unless the visitor has explicitly turned it off.
 
 Apple's native banner is browser UI, so its button clicks do not run the site's JavaScript goal handler. Verify actual native display on a physical supported iOS device; Apple's documentation says the banner is not shown in the iOS simulator. Source: [Apple Smart App Banners](https://developer.apple.com/documentation/webkit/promoting-apps-with-smart-app-banners).
 

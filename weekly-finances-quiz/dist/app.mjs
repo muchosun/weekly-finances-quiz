@@ -88,7 +88,7 @@ function navigate(next, push = true) {
 }
 
 function hero() {
-  return `<section class="hero fade-in"><div class="hero-copy"><span class="eyebrow">YOUR MONEY, ONE WEEK AT A TIME</span><h1>Make room for<br>a <em>calmer week.</em></h1><p>Less “where did it all go?”<br>More knowing what comes next.<br>Find a money routine that fits your life.</p><button class="primary" id="start-quiz">Find my weekly plan ${icon('arrow')}</button><div class="trust-line"><span>${icon('clock')}7 quick questions</span><span>${icon('lock')}No sign-up</span><span>Free quiz</span></div></div>
+  return `<section class="hero fade-in"><div class="hero-copy"><span class="eyebrow">YOUR MONEY, ONE WEEK AT A TIME</span><h1>Get your money<br><em>back in focus.</em></h1><p>See what’s coming.<br>Find room for what matters.<br>Build a simple weekly money plan.</p><button class="primary" id="start-quiz">Get my free money plan ${icon('arrow')}</button><div class="trust-line"><span>${icon('clock')}7 quick steps</span><span>${icon('lock')}No sign-up</span><span>Free plan</span></div></div>
   <div class="hero-art" aria-label="Illustration of a weekly money overview with example figures"><div class="orange-slab"></div><div class="phone"><div class="phone-top"><b>9:41</b><span>▰ ▰ ▰</span></div><div class="island"></div><div class="phone-nav">This Week</div><div class="phone-date">Your Sunday reset</div><div class="checkin-card"><b>A fresh week starts here.</b><p>One check-in. A clearer picture.</p><div class="mini-button">Update This Week</div></div><div class="mini-card"><div class="label">Weekly room in your plan</div><div class="mini-amount">${formatMoney(346)}</div><div class="mini-sub">After planned bills and savings</div></div><div class="mini-card"><div class="mini-pair"><span class="label">Your weekly rhythm</span><span class="green">Looking ahead ↗</span></div><div class="mini-bars"><i style="height:36%"></i><i style="height:60%"></i><i style="height:45%"></i><i style="height:72%"></i><i style="height:65%"></i><i style="height:88%"></i><i style="height:100%"></i></div></div><div class="mini-link"><span>Upcoming bills</span><span>→</span></div><div class="mini-link"><span>Dream purchases</span><span>→</span></div><div class="home-indicator"></div></div><div class="floating-note"><span class="note-dot"></span>A small weekly habit.<b>A little more headspace.</b></div><span class="art-caption">Illustrative preview · example figures</span></div></section>
   <div class="flow-strip"><div class="flow-item"><span class="flow-num">01</span><div><b>Tell us a little about your week</b><p>Your goals, your rhythm, your starting point.</p></div></div><div class="flow-item"><span class="flow-num">02</span><div><b>Get a plan that makes sense</b><p>A practical next step based on your answers.</p></div></div><div class="flow-item"><span class="flow-num">03</span><div><b>Build your routine on iPhone</b><p>Keep going with Weekly Finances.</p></div></div></div>`;
 }
@@ -329,7 +329,7 @@ try {
 $('#preview-banner').hidden=!config.preview;
 if (config.metricaId && !config.preview) {
   let preference;try{preference=localStorage.getItem('wf-analytics-consent');}catch{}
-  if(preference==='allow')startAnalytics();
+  if(preference!=='decline')startAnalytics();
   $('#analytics-settings').hidden=false;syncAnalyticsSettings();
   $('#accept-analytics').onclick=()=>{try{localStorage.setItem('wf-analytics-consent','allow');}catch{}startAnalytics();syncAnalyticsSettings();};
   $('#decline-analytics').onclick=()=>{
