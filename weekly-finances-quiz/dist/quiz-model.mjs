@@ -88,3 +88,27 @@ export function storeUrl(market, officialCampaignUrl = '') {
   }
   return `https://apps.apple.com/${m.store}/app/weekly-finances/id6756235224`;
 }
+
+// Only traffic from the matching paid campaign belongs in Apple's campaign
+// report. Direct visits, other sources and QA keep the normal store link.
+export function campaignUrlForVisit(params, officialCampaignUrl = '') {
+  if (!officialCampaignUrl) return '';
+  try {
+    const url = new URL(officialCampaignUrl);
+    const campaign = url.searchParams.get('ct');
+    if (url.protocol !== 'https:' || url.hostname !== 'apps.apple.com' ||
+        !/\/id6756235224(?:\/|$)/.test(url.pathname) ||
+        !/^\d+$/.test(url.searchParams.get('pt') || '') || !campaign ||
+        params.get('utm_source') !== 'yandex' || params.get('utm_medium') !== 'cpc' ||
+        params.get('utm_campaign') !== campaign) return '';
+    return url.href;
+  } catch { return ''; }
+}
+
+export function smartAppBannerContent(params, officialCampaignUrl = '') {
+  const campaignUrl = campaignUrlForVisit(params, officialCampaignUrl);
+  if (!campaignUrl) return 'app-id=6756235224';
+  const campaign = new URL(campaignUrl).searchParams;
+  const affiliate = new URLSearchParams({pt:campaign.get('pt'),ct:campaign.get('ct')});
+  return `app-id=6756235224, affiliate-data=${affiliate}`;
+}

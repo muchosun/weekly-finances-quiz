@@ -1,6 +1,7 @@
 import { verifyCaptcha } from './captcha.mjs';
 import { appleNotification } from './payments/handler.mjs';
 import { createAttribution,validAttribution } from './payments/ledger.mjs';
+import { smartAppBannerContent } from './dist/quiz-model.mjs';
 
 const baseHeaders = {
   'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff',
@@ -57,6 +58,8 @@ export function createHandler({html,csp,verify=verifyCaptcha}) {
     if(url.pathname.startsWith('/api/'))return json(404,{ok:false,error:'Not found.'});
     if(!['GET','HEAD'].includes(request.method))return json(405,{ok:false,error:'Method not allowed.'});
     if(!['/','/index.html'].includes(url.pathname))return json(404,{ok:false,error:'Not found.'});
-    return new Response(request.method==='HEAD'?null:html,{headers:{...baseHeaders,'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':csp}});
+    const banner=smartAppBannerContent(url.searchParams,env.APP_STORE_CAMPAIGN_URL).replaceAll('&','&amp;');
+    const page=html.replace('<meta name="apple-itunes-app" content="app-id=6756235224">',()=>`<meta name="apple-itunes-app" content="${banner}">`);
+    return new Response(request.method==='HEAD'?null:page,{headers:{...baseHeaders,'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':csp}});
   };
 }

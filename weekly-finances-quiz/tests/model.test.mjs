@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { weeklyEstimate, makePlan, storeUrl } from '../dist/quiz-model.mjs';
+import { weeklyEstimate, makePlan, storeUrl, campaignUrlForVisit, smartAppBannerContent } from '../dist/quiz-model.mjs';
 import { verifyCaptcha } from '../captcha.mjs';
 
 test('uses 52 weeks, preserves a deficit, and treats skipped data as unknown',()=>{
@@ -29,6 +29,19 @@ test('App Store links stay on this app and do not invent attribution IDs',()=>{
   assert.match(storeUrl('US','https://apps.apple.com/us/app/id999'),/6756235224$/);
   const official='https://apps.apple.com/app/id6756235224?pt=123&ct=official-campaign&mt=8';
   assert.equal(storeUrl('US',official),official);
+});
+test('Apple campaign attribution excludes direct, QA and other campaigns and carries no visitor IDs',()=>{
+  const official='https://apps.apple.com/app/apple-store/id6756235224?pt=123&ct=paid_us&mt=8';
+  const paid=new URLSearchParams('utm_source=yandex&utm_medium=cpc&utm_campaign=paid_us&yclid=private-click-id');
+  assert.equal(campaignUrlForVisit(paid,official),official);
+  assert.equal(smartAppBannerContent(paid,official),'app-id=6756235224, affiliate-data=pt=123&ct=paid_us');
+  for(const query of ['', 'utm_source=qa&utm_medium=cpc&utm_campaign=paid_us', 'utm_source=yandex&utm_medium=cpc&utm_campaign=another', 'utm_source=yandex&utm_medium=organic&utm_campaign=paid_us']){
+    const params=new URLSearchParams(query);
+    assert.equal(campaignUrlForVisit(params,official),'');
+    assert.equal(smartAppBannerContent(params,official),'app-id=6756235224');
+  }
+  assert.equal(campaignUrlForVisit(paid,official.replace('pt=123','pt=')),'');
+  assert.equal(campaignUrlForVisit(paid,official.replace('apps.apple.com','evil.test')),'');
 });
 test('CAPTCHA fails closed on missing configuration, missing token, outage, host mismatch and expired token',async()=>{
   assert.equal((await verifyCaptcha('sufficient-token')).status,503);

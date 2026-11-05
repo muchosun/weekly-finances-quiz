@@ -15,6 +15,16 @@ test('public config exposes only public settings and never downgrades to preview
   assert.equal((await (await handle(new Request(origin+'/api/config'),{...env,TURNSTILE_SECRET:''})).json()).captchaReady,false);
   assert.equal((await handle(new Request('https://wrong.example/'),env)).status,403);
 });
+test('Safari gets campaign attribution in the initial HTML only for the matching paid campaign',async()=>{
+  const tag='<meta name="apple-itunes-app" content="app-id=6756235224">';
+  const handle=createHandler({html:tag,csp:'unchanged-script-hash'});
+  const settings={...env,APP_STORE_CAMPAIGN_URL:'https://apps.apple.com/app/apple-store/id6756235224?pt=123&ct=paid_us&mt=8'};
+  const response=await handle(new Request(origin+'/?utm_source=yandex&utm_medium=cpc&utm_campaign=paid_us'),settings);
+  assert.equal(response.headers.get('Content-Security-Policy'),'unchanged-script-hash');
+  assert.match(await response.text(),/content="app-id=6756235224, affiliate-data=pt=123&amp;ct=paid_us"/);
+  assert.equal(await (await handle(new Request(origin+'/'),settings)).text(),tag);
+  assert.equal(await (await handle(new Request(origin+'/?utm_source=qa&utm_medium=cpc&utm_campaign=paid_us'),settings)).text(),tag);
+});
 test('completion rejects other origins, financial fields, oversized and invalid bodies before calling provider',async()=>{
   let calls=0;
   const handle=createHandler({verify:async()=>{calls++;throw new Error('unexpected');}});
