@@ -32,16 +32,28 @@ let busy = false;
 let lastChoiceAt = 0;
 let insightState = {guess:null,period:'weekly',stepOpen:false};
 let analyticsEnabled = false;
+let appInstallDismissed = false;
 const funnelEvents = [];
 const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_complete','captcha_verified','app_store_click','interlude_view','interlude_continue','interlude_skip','insight_reveal','budget_toggle']);
 const campaign = Object.fromEntries(['utm_source','utm_medium','utm_campaign','utm_content','utm_term','yclid'].filter(k=>params.has(k)).map(k=>[k,params.get(k).slice(0,250)]));
 const formatMoney = value => new Intl.NumberFormat(markets[market].locale,{style:'currency',currency:markets[market].currency,maximumFractionDigits:0}).format(value);
 
-function track(name, step, card) {
+function track(name, step, card, placement) {
   if (!allowedEvents.has(name)) return;
-  const event = { name, market, flow_version:'insights-v1', ...(Number.isInteger(step) ? { step: step + 1 } : {}), ...(interludes.some(item=>item.id===card)?{card}:{}) };
+  const event = { name, market, flow_version:'insights-v1', ...(Number.isInteger(step) ? { step: step + 1 } : {}), ...(interludes.some(item=>item.id===card)?{card}:{}), ...(['result_card','result_banner'].includes(placement)?{placement}:{}) };
   funnelEvents.push(event);
   if (analyticsEnabled && typeof window.ym === 'function') window.ym(config.metricaId,'reachGoal',name,{...event, ...campaign});
+}
+
+function syncAppInstallBanner() {
+  const banner=$('#app-install-banner');
+  const show=screen==='result'&&!appInstallDismissed&&$('#analytics-choice').hidden;
+  banner.hidden=!show;
+  document.body.classList.toggle('has-app-install-banner',show);
+  if(show){
+    $('#app-install-link').href=storeUrl(market,config.appStoreCampaignUrl);
+    document.body.style.setProperty('--app-install-height',`${banner.getBoundingClientRect().height}px`);
+  }
 }
 
 function startAnalytics() {
@@ -246,11 +258,15 @@ function render() {
   else if (screen==='verify') {main.innerHTML=verifyMarkup();$('#go-back').onclick=()=>navigate(6);$('#show-plan').onclick=complete;mountCaptcha(renderVersion);}
   else if (screen==='result') {
     main.innerHTML=resultMarkup();
-    $('#app-store-link').onclick=()=>track('app_store_click');
+    $('#app-store-link').onclick=()=>{track('app_store_click',undefined,undefined,'result_card');appInstallDismissed=true;syncAppInstallBanner();};
     $('#start-again').onclick=()=>{answers={};insightState={guess:null,period:'weekly',stepOpen:false};navigate('home');};
   } else {main.innerHTML=questionMarkup(screen);bindQuestion(screen);track('quiz_step_view',screen);}
+  syncAppInstallBanner();
 }
 
+$('#dismiss-app-install').onclick=()=>{appInstallDismissed=true;syncAppInstallBanner();main.focus({preventScroll:true});};
+$('#app-install-link').onclick=()=>{track('app_store_click',undefined,undefined,'result_banner');appInstallDismissed=true;syncAppInstallBanner();};
+window.addEventListener('resize',syncAppInstallBanner);
 $('#market').value=market;
 $('#market').onchange=e=>{market=e.target.value;answers={};insightState={guess:null,period:'weekly',stepOpen:false};const url=new URL(location.href);url.searchParams.set('market',market);history.replaceState({quizScreen:'home'},'',url);render();};
 $('#privacy-button').onclick=()=>$('#privacy-dialog').showModal();
@@ -273,7 +289,7 @@ $('#preview-banner').hidden=!config.preview;
 if (config.metricaId && !config.preview) {
   let preference;try{preference=localStorage.getItem('wf-analytics-consent');}catch{}
   if(preference==='allow')startAnalytics();else if(preference!=='decline')$('#analytics-choice').hidden=false;
-  $('#accept-analytics').onclick=()=>{try{localStorage.setItem('wf-analytics-consent','allow');}catch{}$('#analytics-choice').hidden=true;startAnalytics();};
-  $('#decline-analytics').onclick=()=>{try{localStorage.setItem('wf-analytics-consent','decline');}catch{}$('#analytics-choice').hidden=true;};
+  $('#accept-analytics').onclick=()=>{try{localStorage.setItem('wf-analytics-consent','allow');}catch{}$('#analytics-choice').hidden=true;startAnalytics();syncAppInstallBanner();};
+  $('#decline-analytics').onclick=()=>{try{localStorage.setItem('wf-analytics-consent','decline');}catch{}$('#analytics-choice').hidden=true;syncAppInstallBanner();};
 }
 track('quiz_view');render();

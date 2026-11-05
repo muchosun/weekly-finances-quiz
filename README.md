@@ -78,3 +78,12 @@ Advertising settings and budgets are kept outside this public source. Campaign l
 ## License and brand assets
 
 Original source code is licensed under MIT. The Weekly Finances name and app icon are excluded from that license and remain the property of their respective rights holders. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
+## App installation banners
+
+The HTML head requests Apple's native Smart App Banner with `apple-itunes-app` / app ID `6756235224`. Safari controls whether it appears, compatibility, dismissal and its App Store/Open action. The page cannot force its display on a particular quiz step. No app argument or affiliate/provider token is fabricated, and quiz answers are not passed to the app.
+
+On the result screen, a separate Weekly Finances banner offers the existing App Store link. It is dismissible, stays dismissed in the current tab, hides on other quiz steps and waits until the optional analytics consent prompt is resolved. The page reserves space so the floating card does not prevent access to footer controls. Its link uses the same validated, market-aware App Store URL and the existing `app_store_click` goal with `placement=result_banner`; the original card uses `placement=result_card`. Tracking still requires consent.
+
+Apple's native banner is browser UI, so its button clicks do not run the site's JavaScript goal handler. Verify actual native display on a physical supported iOS device; Apple's documentation says the banner is not shown in the iOS simulator. Source: [Apple Smart App Banners](https://developer.apple.com/documentation/webkit/promoting-apps-with-smart-app-banners).
