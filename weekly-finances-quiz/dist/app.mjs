@@ -175,7 +175,7 @@ function questionMarkup(index) {
 }
 
 function verifyMarkup() {
-  return `<div class="quiz-layout">${aside(7)}<section class="question fade-in">${progress(7)}<div class="question-icon">${icon('check')}</div><h1>Your next week,<br>with a little more clarity.</h1><p class="question-subtitle">Your answers are in. Your weekly routine is ready to explore.</p><div class="verification"><h2>${config.preview?'Your plan preview is ready':'One quick check'}</h2>${config.preview?'<p class="preview-note">This is a design preview. Cloudflare Turnstile is not connected, and no human verification has taken place.</p>':config.captchaReady?'<p>Complete the Cloudflare Turnstile check to see your personalised plan.</p><div id="captcha-container" class="captcha-container"></div>':'<p>Verification is temporarily unavailable. Your answers remain in this tab. Please try again later.</p>'}<p id="captcha-error" class="error" role="alert" hidden></p><button id="show-plan" class="primary" ${!config.preview?'disabled':''}>${config.preview?'View preview plan':'Show my weekly plan'} ${icon('arrow')}</button></div><p class="field-note">No account is created. Optional amounts stay in your browser tab.</p></section></div>`;
+  return `<div class="quiz-layout">${aside(7)}<section class="question fade-in">${progress(7)}<div class="question-icon">${icon('check')}</div><h1>Your weekly plan is ready.</h1><p class="question-subtitle">One quick check, then explore your routine.</p><div class="verification"><h2>${config.preview?'Your plan preview is ready':'One quick check'}</h2>${config.preview?'<p class="preview-note">This is a design preview. Cloudflare Turnstile is not connected, and no human verification has taken place.</p>':config.captchaReady?'<p>Complete the Cloudflare Turnstile check to see your personalised plan.</p><div id="captcha-container" class="captcha-container"></div>':'<p>Verification is temporarily unavailable. Your answers remain in this tab. Please try again later.</p>'}<p id="captcha-error" class="error" role="alert" hidden></p><button id="show-plan" class="primary" ${!config.preview?'disabled':''}>${config.preview?'View preview plan':'Show my weekly plan'} ${icon('arrow')}</button></div><p class="field-note">No account is created. Optional amounts stay in your browser tab.</p></section></div>`;
 }
 
 function resultMarkup() {
@@ -263,7 +263,7 @@ async function mountCaptcha(version) {
     }
     if(screen!=='verify'||version!==renderVersion)return;
     captchaId=window.turnstile.render('#captcha-container',{
-      sitekey:config.captchaClientKey,action:'quiz_complete',theme:'dark',language:'en',size:'flexible',
+      sitekey:config.captchaClientKey,action:'quiz_complete',theme:'dark',language:'en',size:'compact',
       callback:token=>{if(screen!=='verify'||version!==renderVersion)return;captchaToken=token;$('#show-plan').disabled=!token;$('#captcha-error').hidden=true;},
       'expired-callback':()=>showError('Your check expired. Please complete it again.'),
       'timeout-callback':()=>showError('The check timed out. Please try again.'),
