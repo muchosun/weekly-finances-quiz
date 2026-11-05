@@ -5,9 +5,12 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check server.mjs && node --check dist/app.mjs && node --check dist/quiz-model.mjs && node --check dist/interlude-model.mjs && node --check scripts/build-preview.mjs",
+    "check": "node --check server.mjs && node --check dist/app.mjs && node --check dist/quiz-model.mjs && node --check dist/interlude-model.mjs && node --check scripts/build-preview.mjs && node --check worker-handler.mjs && node --check worker.mjs && node --check captcha.mjs",
     "preview:file": "node scripts/build-preview.mjs",
-    "build:pages": "node scripts/build-preview.mjs --pages"
+    "build:pages": "node scripts/build-preview.mjs --pages",
+    "build:worker": "node scripts/build-preview.mjs --worker"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }

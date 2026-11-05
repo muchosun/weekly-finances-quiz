@@ -1,7 +1,12 @@
 Weekly Finances — English acquisition quiz
-Updated 5 November 2026. Design preview; no ad spend.
+Updated 5 November 2026. Cloudflare live integration; no ad spend.
 
-PUBLIC TEST VERSION
+CLOUDFLARE VERSION
+https://weekly-finances-quiz.muchosun.workers.dev/
+Worker serves the quiz and API together. Turnstile is required at completion.
+Secret TURNSTILE_SECRET belongs only in the Worker secret store.
+
+STATIC DESIGN PREVIEW
 https://muchosun.github.io/weekly-finances-quiz/
 GitHub Pages serves the static preview from /docs on main. The optional Actions
 workflow can publish after switching Pages to the workflow build type.
@@ -25,7 +30,11 @@ Node.js 22+, no npm dependencies.
 FILES
 dist/             browser application
 server.mjs        local / deployable Node HTTP server and public config
-captcha.mjs       Yandex token validation, fail closed
+captcha.mjs       Cloudflare token, hostname and action validation, fail closed
+worker.mjs        Cloudflare Worker entrypoint
+worker-handler.mjs  same-origin API and site responses
+wrangler.jsonc    public Worker settings
+build/site.mjs    generated live site module (npm run build:worker)
 research/fact-sources.json     primary fact sources and methodology
 creative/illustration-prompts.json  prompts and generation provenance
 qa/               local screenshots and verification notes (not published)
@@ -40,24 +49,15 @@ Generated portraits support the dark/orange visual style; source prompts are
 versioned. The original quiz is preserved at /weekly-finances-quiz/classic/.
 
 LIVE CAPTCHA
-Configure the public client key and private server key in the hosting environment,
-not in source or a browser field. .env.example contains variable names only.
-Node does not load .env files automatically: use your deployment secret store or
-Node's --env-file support with a local, ignored file you fill in yourself.
-Set PREVIEW_MODE=0, NODE_ENV=production, HOST=0.0.0.0,
-PUBLIC_ORIGIN=https://your-domain and SMARTCAPTCHA_EXPECTED_HOST=your-domain.
-For a local live check, add localhost/127.0.0.1 to the CAPTCHA allowed hosts and
-use its exact returned host including port in SMARTCAPTCHA_EXPECTED_HOST.
-
-Only /api/complete calls the validation API. It accepts a token only, never quiz
-answers or financial figures. Requires Yandex status=ok AND an exact host match.
-Missing keys, expired tokens, upstream errors and timeouts block completion.
-The standard widget is in English and handles expiry / network / JS errors.
-Real widget rendering and real token validation remain untested without keys.
-The production dist/ application needs the Node API or an equivalent server
-route. The generated Pages build explicitly enables design preview mode,
-avoids API calls and shows that live verification is not connected.
-Do not use the design preview as a live ad destination.
+Cloudflare Turnstile replaces Yandex SmartCaptcha. The widget is managed mode,
+English, dark theme, with the quiz_complete action. Worker Siteverify requires
+success=true, exact production hostname, and the exact action. Missing keys,
+expired or replayed tokens, provider errors and mismatches block completion.
+The API accepts a token only. Answers and amounts never leave the tab.
+Public settings are in wrangler.jsonc. TURNSTILE_SECRET must be a Worker secret,
+never a source file or browser value. Preserve secret bindings during deploys.
+Build the site module with npm run build:worker before deploying.
+GitHub Pages remains an explicit static preview without live verification.
 
 ANALYTICS
 Optional Metrica, disabled unless a real counter is configured and user opts in.

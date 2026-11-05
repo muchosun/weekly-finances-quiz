@@ -8,3 +8,5 @@ weekly-finances-quiz/preview.html
 weekly-finances-quiz/pages/
 weekly-finances-quiz/qa/
 weekly-finances-quiz/docs/
+weekly-finances-quiz/build/
+**/.wrangler/

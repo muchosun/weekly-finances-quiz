@@ -57,7 +57,7 @@ function startAnalytics() {
 
 function navigate(next, push = true) {
   if (busy) return;
-  if (captchaId !== null && window.smartCaptcha) window.smartCaptcha.destroy(captchaId);
+  if (captchaId !== null && window.turnstile) window.turnstile.remove(captchaId);
   captchaId = null; captchaToken = '';
   screen = next;
   if (push) history.pushState({ quizScreen: next },'',location.href);
@@ -141,7 +141,7 @@ function bindInterlude(item){
 
 function numbersMarkup() {
   const fields = [['income','Take-home income','After tax, in a typical month.','4000'],['essentials','Bills & committed spending','Rent, food, repayments and other planned costs.','2200'],['savings','Planned savings','Money you want to set aside each month.','300']];
-  return `<form id="money-form" novalidate><div class="money-fields">${fields.map(([key,label,help,placeholder])=>`<div class="money-field"><label for="${key}"><span>${label}<small id="${key}-help">${help}</small></span><span class="input-wrap"><span aria-hidden="true">${markets[market].symbol}</span><input type="number" inputmode="decimal" id="${key}" name="${key}" min="0" max="1000000000000" step="any" autocomplete="off" aria-describedby="${key}-help" placeholder="${placeholder}" value="${answers.numbers?.[key] ?? ''}"></span></label></div>`).join('')}</div><p class="field-note">All figures are per month, in ${markets[market].currency}. An estimate is enough. This is a planning illustration, not a safe-to-spend recommendation.</p><p class="error" id="number-error" role="alert" hidden></p><div class="question-actions"><button type="button" class="text-button" id="skip-numbers">Skip for now</button><button type="submit" class="primary">Continue ${icon('arrow')}</button></div></form>`;
+  return `<form id="money-form" class="ym-disable-submit" novalidate><div class="money-fields">${fields.map(([key,label,help,placeholder])=>`<div class="money-field"><label for="${key}"><span>${label}<small id="${key}-help">${help}</small></span><span class="input-wrap"><span aria-hidden="true">${markets[market].symbol}</span><input class="ym-disable-keys" type="number" inputmode="decimal" id="${key}" name="${key}" min="0" max="1000000000000" step="any" autocomplete="off" aria-describedby="${key}-help" placeholder="${placeholder}" value="${answers.numbers?.[key] ?? ''}"></span></label></div>`).join('')}</div><p class="field-note">All figures are per month, in ${markets[market].currency}. An estimate is enough. This is a planning illustration, not a safe-to-spend recommendation.</p><p class="error" id="number-error" role="alert" hidden></p><div class="question-actions"><button type="button" class="text-button" id="skip-numbers">Skip for now</button><button type="submit" class="primary">Continue ${icon('arrow')}</button></div></form>`;
 }
 
 function questionMarkup(index) {
@@ -150,7 +150,7 @@ function questionMarkup(index) {
 }
 
 function verifyMarkup() {
-  return `<div class="quiz-layout">${aside(7)}<section class="question fade-in">${progress(7)}<div class="question-icon">${icon('check')}</div><h1>Your next week,<br>with a little more clarity.</h1><p class="question-subtitle">Your answers are in. Your weekly routine is ready to explore.</p><div class="verification"><h2>${config.preview?'Your plan preview is ready':'One quick check'}</h2>${config.preview?'<p class="preview-note">This is a design preview. Yandex SmartCaptcha is not connected, and no human verification has taken place.</p>':config.captchaReady?'<p>Complete the Yandex SmartCaptcha check to see your personalised plan.</p><div id="captcha-container" class="captcha-container"></div>':'<p>Verification is temporarily unavailable. Your answers remain in this tab. Please try again later.</p>'}<p id="captcha-error" class="error" role="alert" hidden></p><button id="show-plan" class="primary" ${!config.preview?'disabled':''}>${config.preview?'View preview plan':'Show my weekly plan'} ${icon('arrow')}</button></div><p class="field-note">No account is created. Optional amounts stay in your browser tab.</p></section></div>`;
+  return `<div class="quiz-layout">${aside(7)}<section class="question fade-in">${progress(7)}<div class="question-icon">${icon('check')}</div><h1>Your next week,<br>with a little more clarity.</h1><p class="question-subtitle">Your answers are in. Your weekly routine is ready to explore.</p><div class="verification"><h2>${config.preview?'Your plan preview is ready':'One quick check'}</h2>${config.preview?'<p class="preview-note">This is a design preview. Cloudflare Turnstile is not connected, and no human verification has taken place.</p>':config.captchaReady?'<p>Complete the Cloudflare Turnstile check to see your personalised plan.</p><div id="captcha-container" class="captcha-container"></div>':'<p>Verification is temporarily unavailable. Your answers remain in this tab. Please try again later.</p>'}<p id="captcha-error" class="error" role="alert" hidden></p><button id="show-plan" class="primary" ${!config.preview?'disabled':''}>${config.preview?'View preview plan':'Show my weekly plan'} ${icon('arrow')}</button></div><p class="field-note">No account is created. Optional amounts stay in your browser tab.</p></section></div>`;
 }
 
 function resultMarkup() {
@@ -192,22 +192,32 @@ function bindQuestion(index) {
   }
 }
 
+let captchaScriptPromise;
 async function mountCaptcha(version) {
   if (config.preview || !config.captchaReady) return;
-  try {
-    if (!window.smartCaptcha) await new Promise((resolve,reject)=>{
-      const script=document.createElement('script');script.src='https://smartcaptcha.cloud.yandex.ru/captcha.js?render=onload';script.async=true;
-      script.onload=resolve;script.onerror=()=>reject(new Error('load'));document.head.append(script);
-    });
+  const showError = message => {
     if(screen!=='verify'||version!==renderVersion)return;
-    captchaId=window.smartCaptcha.render('captcha-container',{sitekey:config.captchaClientKey,hl:'en',callback:token=>{
-      captchaToken=token;$('#show-plan').disabled=!token;$('#captcha-error').hidden=true;
-    }});
-    for (const event of ['token-expired','network-error','javascript-error']) window.smartCaptcha.subscribe(captchaId,event,()=>{
-      if(screen!=='verify')return;captchaToken='';$('#show-plan').disabled=true;
-      $('#captcha-error').hidden=false;$('#captcha-error').textContent=event==='token-expired'?'Your check expired. Please complete it again.':'Verification could not load. Please check your connection and try again.';
+    captchaToken='';$('#show-plan').disabled=true;
+    $('#captcha-error').hidden=false;$('#captcha-error').textContent=message;
+  };
+  try {
+    if (!window.turnstile) {
+      captchaScriptPromise ||= new Promise((resolve,reject)=>{
+        const script=document.createElement('script');
+        script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;
+        script.onload=resolve;script.onerror=()=>{captchaScriptPromise=null;script.remove();reject(new Error('load'));};document.head.append(script);
+      });
+      await captchaScriptPromise;
+    }
+    if(screen!=='verify'||version!==renderVersion)return;
+    captchaId=window.turnstile.render('#captcha-container',{
+      sitekey:config.captchaClientKey,action:'quiz_complete',theme:'dark',language:'en',size:'flexible',
+      callback:token=>{if(screen!=='verify'||version!==renderVersion)return;captchaToken=token;$('#show-plan').disabled=!token;$('#captcha-error').hidden=true;},
+      'expired-callback':()=>showError('Your check expired. Please complete it again.'),
+      'timeout-callback':()=>showError('The check timed out. Please try again.'),
+      'error-callback':()=>{showError('Verification could not load. Please check your connection and try again.');return true;},
     });
-  } catch {if(screen==='verify'){ $('#captcha-error').hidden=false;$('#captcha-error').textContent='Verification could not load. Check your connection and try again.'; }}
+  } catch {showError('Verification could not load. Check your connection and try again.');}
 }
 
 async function complete() {
@@ -217,13 +227,13 @@ async function complete() {
   try {
     const response=await fetch('/api/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:captchaToken}),signal:AbortSignal.timeout(15000)});
     const result=await response.json();
-    if(!response.ok||!result.ok)throw new Error(result.error||'Verification failed. Please try again.');
+    if(!response.ok||!result.ok||(!config.preview&&result.verified!==true))throw new Error(result.error||'Verification failed. Please try again.');
     if(result.verified)track('captcha_verified');
     track('quiz_complete');busy=false;navigate('result');
   } catch(error) {
     if (screen !== 'verify') { busy=false;return; }
     $('#captcha-error').hidden=false;$('#captcha-error').textContent=error.name==='TimeoutError'?'The check timed out. Please try again.':error.message;
-    captchaToken='';if(captchaId!==null)window.smartCaptcha?.reset(captchaId);
+    captchaToken='';if(captchaId!==null)window.turnstile?.reset(captchaId);
     button.textContent=config.preview?'View preview plan':'Show my weekly plan';button.disabled=!config.preview;busy=false;
   }
 }

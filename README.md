@@ -4,11 +4,13 @@ An English, mobile-friendly acquisition quiz inspired by the iOS app Weekly Fina
 
 Three optional interludes add a sourced fact-reveal interaction, a monthly/weekly budget explorer, and a personalised first-step reveal with generated human illustrations.
 
-**[Open the test site](https://muchosun.github.io/weekly-finances-quiz/)**
+**[Open the Cloudflare site](https://weekly-finances-quiz.muchosun.workers.dev/)**
+
+[GitHub Pages design preview](https://muchosun.github.io/weekly-finances-quiz/) remains available.
 
 [Original version without interludes](https://muchosun.github.io/weekly-finances-quiz/classic/) is preserved for manual comparison. Traffic is not randomly split; this is not an A/B experiment.
 
-The GitHub Pages version is a **design preview**. Live CAPTCHA verification, analytics, purchases, and advertising campaigns are not enabled. Optional financial amounts stay in the browser tab and reset on reload. The result is a rule-based routine, not a financial assessment. Quiz answers do not transfer to the app.
+The GitHub Pages version is a **design preview**. The Cloudflare version serves both the quiz and its API through one Worker, with mandatory Turnstile verification and optional, consent-based Yandex Metrica. A missing server secret blocks completion. Purchases are not tracked by this quiz and no advertising spend is activated. Optional financial amounts stay in the browser tab and reset on reload. The result is a rule-based routine, not a financial assessment. Quiz answers do not transfer to the app.
 
 ## Run locally
 
@@ -39,8 +41,10 @@ Tests and the build were run locally before publication. An optional deployment 
 
 - `weekly-finances-quiz/dist/`: UI, styles, questions and result logic.
 - `weekly-finances-quiz/scripts/build-preview.mjs`: standalone and Pages preview builds.
-- `weekly-finances-quiz/server.mjs`: optional Node server for the live API.
-- `weekly-finances-quiz/captcha.mjs`: Yandex SmartCaptcha token and host validation.
+- `weekly-finances-quiz/worker.mjs` and `worker-handler.mjs`: Cloudflare site and live API.
+- `weekly-finances-quiz/wrangler.jsonc`: public deployment settings; the secret belongs in Cloudflare Secrets.
+- `weekly-finances-quiz/server.mjs`: local Node development server.
+- `weekly-finances-quiz/captcha.mjs`: Cloudflare Turnstile token, hostname and action validation.
 - `weekly-finances-quiz/tests/`: calculation, result, link and verification tests.
 - `weekly-finances-quiz/research/fact-sources.json`: fact definitions, primary sources, population, fieldwork and sample.
 - `weekly-finances-quiz/creative/illustration-prompts.json`: the three image prompts and generation provenance.
@@ -55,9 +59,21 @@ The three supporting portraits were generated with the built-in ImageGen tool an
 
 ## Live verification
 
-GitHub Pages hosts static files. Real SmartCaptcha requires a separately hosted server endpoint. The included Node server validates tokens with Yandex, checks the exact expected host, and rejects missing configuration, failed tokens, host mismatches and provider errors. See `weekly-finances-quiz/.env.example` for configuration names. Set private keys in your hosting secret store; never put them in the browser build.
+The live site and `/api/config` / `/api/complete` are hosted together at `weekly-finances-quiz.muchosun.workers.dev`. The Worker validates each token with Cloudflare Siteverify and requires `success === true`, the exact production hostname and action `quiz_complete`. Tokens are single-use; missing configuration, expiry, replay, provider failures or mismatched hosts/actions block completion. The endpoint accepts a verification token only, never quiz answers or financial amounts.
 
-Production mode does not automatically enable preview if its API is unavailable. Preview mode is explicitly marked in the generated static build. Real CAPTCHA tokens and the analytics integration have not been tested with account credentials.
+```sh
+npm run build:worker
+```
+
+This generates `build/site.mjs`, a self-contained site module with a CSP script hash. Deploy `worker.mjs`, `worker-handler.mjs`, `captcha.mjs`, and `build/site.mjs` as ES modules using the public settings in `wrangler.jsonc`. Keep the `TURNSTILE_SECRET` binding in the Cloudflare secret store and preserve it when updating the Worker. Never commit it. The private secret is not included in `/api/config`.
+
+The production Worker cannot enter preview mode. Local design preview is limited to loopback by the Node server, and the GitHub Pages build marks preview explicitly. The GitHub Pages copy does not activate analytics or CAPTCHA.
+
+## Analytics
+
+Metrica counter `114081987` has two exact JavaScript goals: `quiz_complete` (ID `678849269`, verified plan displayed) and `app_store_click` (ID `678849315`, outbound App Store click). The script is loaded only after optional analytics consent. Webvisor, clickmap, automatic link tracking, automatic goals, ecommerce and Tag Manager are disabled. Financial inputs carry `ym-disable-keys` and the amount form carries `ym-disable-submit`. Quiz values and financial amounts are never sent. A store click is not an app install or a payment.
+
+Advertising settings and budgets are kept outside this public source. Campaign launch and payment attribution require separate operational verification.
 
 ## License and brand assets
 

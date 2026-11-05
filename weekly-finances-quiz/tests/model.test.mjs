@@ -34,21 +34,21 @@ test('CAPTCHA fails closed on missing configuration, missing token, outage, host
   assert.equal((await verifyCaptcha('sufficient-token')).status,503);
   const base={secret:'test-only-secret',expectedHost:'quiz.example'};
   assert.equal((await verifyCaptcha('',base)).status,400);
-  for(const data of [{status:'failed',host:'quiz.example'},{status:'ok',host:'another.example'},{status:'ok',host:''}]){
+  for(const data of [{success:false,hostname:'quiz.example',action:'quiz_complete'},{success:true,hostname:'another.example',action:'quiz_complete'},{success:true,hostname:'quiz.example',action:'wrong_action'},{success:true,hostname:'',action:'quiz_complete'}]){
     const result=await verifyCaptcha('sufficient-token',{...base,fetcher:async()=>({ok:true,json:async()=>data})});
     assert.equal(result.ok,false);assert.equal(result.status,403);
   }
   assert.equal((await verifyCaptcha('sufficient-token',{...base,fetcher:async()=>({ok:false})})).status,503);
   assert.equal((await verifyCaptcha('sufficient-token',{...base,fetcher:async()=>{throw new Error('offline')}})).status,503);
 });
-test('CAPTCHA sends the token only to Yandex and requires an exact validated host',async()=>{
+test('Turnstile sends the token only to Cloudflare and requires the exact hostname and action',async()=>{
   let call;
   const result=await verifyCaptcha('sufficient-token',{secret:'test-only-secret',expectedHost:'quiz.example',fetcher:async(url,options)=>{
-    call={url,options};return {ok:true,json:async()=>({status:'ok',host:'quiz.example'})};
+    call={url,options};return {ok:true,json:async()=>({success:true,hostname:'quiz.example',action:'quiz_complete'})};
   }});
   assert.equal(result.verified,true);
-  assert.equal(call.url,'https://smartcaptcha.cloud.yandex.ru/validate');
-  assert.equal(call.options.body.get('token'),'sufficient-token');
+  assert.equal(call.url,'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+  assert.equal(call.options.body.get('response'),'sufficient-token');
   assert.equal(call.options.body.get('secret'),'test-only-secret');
   assert.equal(call.options.body.has('income'),false);
 });

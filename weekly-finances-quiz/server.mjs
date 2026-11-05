@@ -8,12 +8,12 @@ const port=Number(process.env.PORT||4317);
 const host=process.env.HOST||'127.0.0.1';
 const origin=process.env.PUBLIC_ORIGIN||`http://127.0.0.1:${port}`;
 const preview=process.env.PREVIEW_MODE!=='0' && process.env.NODE_ENV!=='production' && ['127.0.0.1','::1','localhost'].includes(host) && ['127.0.0.1','localhost','[::1]'].includes(new URL(origin).hostname);
-const clientKey=process.env.SMARTCAPTCHA_CLIENT_KEY||'';
-const secret=process.env.SMARTCAPTCHA_SERVER_KEY||'';
-const expectedHost=process.env.SMARTCAPTCHA_EXPECTED_HOST||'';
+const clientKey=process.env.TURNSTILE_SITE_KEY||'';
+const secret=process.env.TURNSTILE_SECRET||'';
+const expectedHost=process.env.TURNSTILE_EXPECTED_HOST||'';
 const root=path.resolve(fileURLToPath(new URL('./dist/',import.meta.url)));
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.webp':'image/webp'};
-const headers={ 'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','Cache-Control':'no-store','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self'; script-src 'self' https://smartcaptcha.cloud.yandex.ru https://captcha-api.yandex.ru https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://mc.yandex.ru https://*.yandex.ru; connect-src 'self' https://smartcaptcha.cloud.yandex.ru https://captcha-api.yandex.ru https://mc.yandex.ru https://mc.yandex.com; frame-src https://smartcaptcha.cloud.yandex.ru https://captcha-api.yandex.ru; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" };
+const headers={ 'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin','Cache-Control':'no-store','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://mc.yandex.ru; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://mc.yandex.ru https://*.yandex.ru; connect-src 'self' https://challenges.cloudflare.com https://mc.yandex.ru https://mc.yandex.com; frame-src https://challenges.cloudflare.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" };
 
 function json(res,status,data){res.writeHead(status,{...headers,'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));}
 const server=http.createServer(async(req,res)=>{
