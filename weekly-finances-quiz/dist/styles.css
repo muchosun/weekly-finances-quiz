@@ -136,3 +136,47 @@
   .budget-row{margin-bottom:6px}
 }
 @media(max-width:760px) and (max-height:800px){[data-screen="insight-week"] .interlude-art{display:none}}
+/* Phone landscape keeps the same focused flow instead of switching to the desktop sidebar. */
+@media(max-width:1000px) and (max-height:500px){
+  body{display:flex;flex-direction:column;min-height:100svh}
+  .site-header,.quiz-aside,.question-icon,.hero-art,.interlude-art{display:none}
+  main{width:100%;flex:1;min-height:0;padding:10px 24px 8px}
+  .quiz-layout{display:block;padding:0}
+  .quiz-top,.interlude-layout>.quiz-top{margin-bottom:10px}
+  .question h1,.interlude-content h1{font-size:26px;line-height:1.15;margin:0 0 8px;letter-spacing:-.7px}
+  .question-subtitle,.interlude-intro{font-size:12px;line-height:1.4;margin:0 0 12px}
+  .options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .option{min-height:56px;padding:10px 14px}
+  .option b{font-size:14px}
+  .option small{display:none}
+  .field-note{font-size:10px;line-height:1.4;margin:8px 0}
+  .site-footer{width:calc(100% - 48px);min-height:44px;margin:0 24px;padding:0;border:0}
+  .site-footer>span{display:none}
+  .site-footer>div{width:100%;justify-content:space-between}
+  .site-footer button{min-height:44px}
+  #locked-market{border:0;padding:0;font-size:10px}
+  .market-control select{min-height:44px}
+  .money-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:12px 16px}
+  .money-field{border:0;padding:0;min-width:0}
+  .money-field label{display:flex;flex-direction:column;align-items:stretch;gap:8px;font-size:12px}
+  .money-field label>span:first-child{min-height:32px;display:flex;align-items:center}
+  .money-field small{display:none}
+  .input-wrap{width:100%;min-height:44px;padding:10px}
+  .input-wrap input{font-size:17px}
+  .question-actions{margin-top:10px}
+  .question-actions .primary{min-height:48px;padding:13px 18px}
+  .interlude-split{display:block}
+  .interlude-layout{margin:0}
+  .interlude-content{max-width:650px;margin:auto}
+  .interlude-content .eyebrow{font-size:9px}
+  .interlude-actions{margin-top:12px}
+  .interlude-actions>.primary{min-height:48px;padding:13px 18px}
+  .hero{display:block;min-height:0}
+  .hero-copy{padding:0}
+  .hero h1{font-size:38px;line-height:1.05;margin:12px 0;letter-spacing:-1.5px}
+  .hero h1 br,.hero p br{display:none}
+  .hero p{max-width:none;font-size:13px;line-height:1.4;margin:10px 0 14px}
+  .hero-copy>.primary{min-height:48px;padding:13px 18px}
+  .trust-line{margin-top:10px}
+  .flow-strip{display:none}
+}
