@@ -10,14 +10,15 @@ Three optional interludes add a sourced fact-reveal interaction, a monthly/weekl
 
 [Original version without interludes](https://muchosun.github.io/weekly-finances-quiz/classic/) is preserved for manual comparison. Traffic is not randomly split; this is not an A/B experiment.
 
-The GitHub Pages version is a **design preview**. The Cloudflare version serves both the quiz and its API through one Worker, with mandatory Turnstile verification and Yandex Metrica enabled by default without an interruption. Visitors can turn analytics off in Privacy; an explicit saved opt-out is respected. A missing server secret blocks completion. Purchases are not tracked by this quiz. Optional financial amounts stay in the browser tab and reset on reload. The result is a rule-based routine, not a financial assessment. Quiz answers do not transfer to the app.
+The GitHub Pages version is a **design preview**. The Cloudflare version serves both the quiz and its API through one Worker, with mandatory Turnstile verification and Yandex Metrica enabled by default without an interruption. Visitors can turn analytics off in Privacy; an explicit saved opt-out is respected. A missing server secret blocks completion. The quiz UI does not report purchases; the separate Apple notification receiver is described below. Optional financial amounts stay in the browser tab and reset on reload. The result is a rule-based routine, not a financial assessment. Quiz answers do not transfer to the app.
 
 ## Run locally
 
-Requires Node.js 22 or later. No npm dependencies.
+Requires Node.js 22 or later. Run `npm ci` before development or testing.
 
 ```sh
 cd weekly-finances-quiz
+npm ci
 npm start
 # http://127.0.0.1:4317
 ```
@@ -62,10 +63,10 @@ The three supporting portraits were generated with the built-in ImageGen tool an
 The live site and `/api/config` / `/api/complete` are hosted together at `weekly-finances-quiz.muchosun.workers.dev`. The Worker validates each token with Cloudflare Siteverify and requires `success === true`, the exact production hostname and action `quiz_complete`. Tokens are single-use; missing configuration, expiry, replay, provider failures or mismatched hosts/actions block completion. The endpoint accepts a verification token only, never quiz answers or financial amounts.
 
 ```sh
-npm run build:worker
+npm run build:deploy
 ```
 
-This generates `build/site.mjs`, a self-contained site module with a CSP script hash. Deploy `worker.mjs`, `worker-handler.mjs`, `captcha.mjs`, and `build/site.mjs` as ES modules using the public settings in `wrangler.jsonc`. Keep the `TURNSTILE_SECRET` binding in the Cloudflare secret store and preserve it when updating the Worker. Never commit it. The private secret is not included in `/api/config`.
+This generates `build/site.mjs`, a self-contained site module with a CSP script hash, then bundles the full Worker into `build/worker-bundle.mjs`. Deploy that bundle using the public settings in `wrangler.jsonc`. Keep the `TURNSTILE_SECRET` binding in the Cloudflare secret store and preserve it when updating the Worker. Never commit it. The private secret is not included in `/api/config`.
 
 The production Worker cannot enter preview mode. Local design preview is limited to loopback by the Node server, and the GitHub Pages build marks preview explicitly. The GitHub Pages copy does not activate analytics or CAPTCHA.
 
@@ -74,6 +75,16 @@ The production Worker cannot enter preview mode. Local design preview is limited
 Metrica counter `114081987` has two exact JavaScript goals: `quiz_complete` (ID `678849269`, verified plan displayed) and `app_store_click` (ID `678849315`, outbound App Store click). Analytics starts by default on the live site without a popup. The footer’s Privacy dialog explains the collection and allows visitors to turn it off; a saved explicit opt-out prevents script loading and event delivery. Webvisor, clickmap, automatic link tracking, automatic goals, ecommerce and Tag Manager are disabled. Financial inputs carry `ym-disable-keys` and the amount form carries `ym-disable-submit`. Quiz values and financial amounts are never sent. A store click is not an app install or a payment.
 
 Advertising settings and budgets are kept outside this public source. Campaign launch and payment attribution require separate operational verification.
+
+## Apple payment notifications
+
+The Cloudflare Worker accepts signed App Store Server Notifications V2 at `/api/apple/notifications/production` and `/api/apple/notifications/sandbox`. It uses Apple's server library and public Apple trust anchors, with certificate revocation checks enabled. A D1 ledger records minimal verified transaction data and deduplicates notifications and first-payment conversions. Financial quiz answers are not collected.
+
+Payment attribution and export are **disabled** until the app can receive the anonymous `appAccountToken` from the web flow and the owner configures the Metrica OAuth secret. A plain App Store URL does not transfer the visitor identifier to a new installation. Unmatched payments stay in the ledger and are never guessed to belong to a quiz visitor. The existing quiz completion goal remains the advertising optimization goal.
+
+Build the deployable Worker with `npm run build:deploy`. It bundles Apple's library and adapts its OCSP fetch call to the Workers runtime. Preserve all existing Worker secrets during deployment. The `METRICA_OAUTH_TOKEN` belongs only in Cloudflare Secrets. No Apple private key is required to receive and verify notifications.
+
+The Russian [developer handoff](weekly-finances-quiz/payments/DEVELOPER_HANDOFF.txt) describes the app changes, first-payment definition, test cases and activation requirements. Receiving a real Apple notification and matching a conversion in Metrica require separate end-to-end verification.
 
 ## License and brand assets
 

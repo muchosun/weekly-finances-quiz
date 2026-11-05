@@ -8,9 +8,22 @@
     "check": "node --check server.mjs && node --check dist/app.mjs && node --check dist/quiz-model.mjs && node --check dist/interlude-model.mjs && node --check scripts/build-preview.mjs && node --check worker-handler.mjs && node --check worker.mjs && node --check captcha.mjs",
     "preview:file": "node scripts/build-preview.mjs",
     "build:pages": "node scripts/build-preview.mjs --pages",
-    "build:worker": "node scripts/build-preview.mjs --worker"
+    "build:worker": "node scripts/build-preview.mjs --worker",
+    "build:deploy": "npm run build:worker && node scripts/bundle-worker.mjs",
+    "test:worker": "npm run build:deploy && node scripts/smoke-worker.mjs"
   },
   "engines": {
     "node": ">=22"
+  },
+  "dependencies": {
+    "@apple/app-store-server-library": "3.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "miniflare": "4.20260730.0"
+  },
+  "overrides": {
+    "undici": "^7.30.1",
+    "sharp": "^0.35.5"
   }
 }

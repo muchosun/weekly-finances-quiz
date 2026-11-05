@@ -23,10 +23,14 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
+      - name: Install pinned dependencies
+        run: npm ci
       - name: Check JavaScript
         run: npm run check
-      - name: Test quiz and CAPTCHA validation
+      - name: Test quiz, CAPTCHA and payment validation
         run: npm test
+      - name: Verify compiled Cloudflare Worker
+        run: npm run test:worker
       - name: Build static preview
         run: npm run build:pages
       - name: Configure Pages

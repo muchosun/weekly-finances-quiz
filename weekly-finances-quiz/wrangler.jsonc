@@ -1,7 +1,8 @@
 {
   "name": "weekly-finances-quiz",
-  "main": "worker.mjs",
+  "main": "build/worker-bundle.mjs",
   "compatibility_date": "2026-11-05",
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
   "observability": {
@@ -15,6 +16,10 @@
     "TURNSTILE_EXPECTED_HOST": "weekly-finances-quiz.muchosun.workers.dev",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAF0cK3xigP8U99Sl",
     "METRICA_COUNTER_ID": "114081987",
-    "APP_STORE_CAMPAIGN_URL": ""
-  }
+    "APP_STORE_CAMPAIGN_URL": "",
+    "PAYMENT_ATTRIBUTION_ENABLED": "0",
+    "PAYMENT_EXPORT_ENABLED": "0"
+  },
+  "d1_databases": [{"binding":"PAYMENTS_DB","database_name":"weekly-finances-payments","database_id":"782953ef-a0d1-437e-9f59-45edb8c90ee2","migrations_dir":"payments"}],
+  "triggers": {"crons":["*/5 * * * *"]}
 }
