@@ -7,37 +7,37 @@ export const markets = {
 };
 
 export const questions = [
-  { id: 'goal', category: 'Your focus', title: 'What would make money feel a little easier?', subtitle: 'Start with the thing that matters most to you.', icon: 'spark', options: [
+  { id: 'goal', category: 'Your focus', title: 'What would make money easier?', subtitle: 'Start with the thing that matters most to you.', icon: 'spark', options: [
     ['clarity', 'Know what I can spend', 'Less second-guessing, more clarity.', 'wallet'],
     ['bills', 'Stay ahead of my bills', 'See what is coming before it arrives.', 'calendar'],
     ['dream', 'Make room for a goal', 'Turn a someday purchase into a plan.', 'flag'],
     ['future', 'See the bigger picture', 'Understand where my money is heading.', 'chart'],
   ] },
-  { id: 'habit', category: 'Your starting point', title: 'How do you keep track of money today?', subtitle: 'There is no right answer. Just your starting point.', icon: 'wallet', options: [
+  { id: 'habit', category: 'Your starting point', title: 'How do you track your money?', subtitle: 'There is no right answer. Just your starting point.', icon: 'wallet', options: [
     ['mental', 'Mostly in my head', 'I check my balance and make a judgement call.', 'spark'],
     ['bank', 'Through my banking apps', 'The numbers are there, but the plan is not.', 'wallet'],
     ['sheet', 'A spreadsheet or notes', 'It works, until keeping it updated gets in the way.', 'grid'],
     ['app', 'Another budgeting app', 'I am looking for a routine that fits me better.', 'phone'],
   ] },
-  { id: 'pay', category: 'Your rhythm', title: 'How does income usually come in?', subtitle: 'Your plan should fit your paydays.', icon: 'calendar', options: [
+  { id: 'pay', category: 'Your rhythm', title: 'How often do you get paid?', subtitle: 'Your plan should fit your paydays.', icon: 'calendar', options: [
     ['weekly', 'Every week', 'A regular weekly payday.', 'calendar'],
     ['biweekly', 'Every two weeks', 'A payday every other week.', 'calendar'],
     ['monthly', 'Once or twice a month', 'One or two planned paydays each month.', 'calendar'],
     ['variable', 'It varies', 'Freelance work, projects or changing income.', 'chart'],
   ] },
-  { id: 'numbers', category: 'A little perspective', title: 'What could a typical week look like?', subtitle: 'Add rough monthly figures, or skip this step. Your amounts stay in this browser tab.', icon: 'chart', type: 'numbers' },
-  { id: 'accounts', category: 'Your money picture', title: 'How many balances do you keep an eye on?', subtitle: 'Think cash, cards, savings and loan accounts.', icon: 'grid', options: [
+  { id: 'numbers', category: 'A little perspective', title: 'What does a typical month look like?', subtitle: 'Add estimates, or skip. Amounts stay in this tab.', icon: 'chart', type: 'numbers' },
+  { id: 'accounts', category: 'Your money picture', title: 'How many balances do you track?', subtitle: 'Think cash, cards, savings and loan accounts.', icon: 'grid', options: [
     ['few', 'One or two', 'A simple starting point.', 'wallet'],
     ['several', 'Three to five', 'A few moving parts to bring together.', 'grid'],
     ['many', 'Six or more', 'I would like to see everything in one place.', 'layers'],
   ] },
-  { id: 'friction', category: 'Your sticking point', title: 'What most often gets in the way?', subtitle: 'We will make this the first thing your routine addresses.', icon: 'spark', options: [
+  { id: 'friction', category: 'Your sticking point', title: 'What gets in the way most?', subtitle: 'We will make this the first thing your routine addresses.', icon: 'spark', options: [
     ['logging', 'Logging every little purchase', 'I lose momentum when tracking becomes a chore.', 'clock'],
     ['surprises', 'Expenses I did not see coming', 'Bills and planned payments catch me off guard.', 'calendar'],
     ['split', 'Money spread across accounts', 'It is hard to see the whole picture.', 'layers'],
     ['planning', 'Not knowing what comes next', 'I can see today, but not further ahead.', 'chart'],
   ] },
-  { id: 'routine', category: 'Make it yours', title: 'When would a weekly check-in fit your life?', subtitle: 'Pick a rhythm you can imagine keeping.', icon: 'clock', options: [
+  { id: 'routine', category: 'Make it yours', title: 'When could you check in weekly?', subtitle: 'Pick a rhythm you can imagine keeping.', icon: 'clock', options: [
     ['sunday', 'A Sunday reset', 'A moment to get ready for the week ahead.', 'sun'],
     ['monday', 'A Monday fresh start', 'Begin the week with a clear picture.', 'calendar'],
     ['payday', 'Around payday', 'Check in when money arrives, then review weekly.', 'wallet'],

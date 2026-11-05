@@ -17,12 +17,10 @@
   <header class="site-header">
     <a class="brand" href="./" aria-label="Weekly Finances home"><img src="/assets/app-icon.webp" alt="" width="40" height="40"><span>Weekly<br>Finances</span></a>
     <span class="header-note">A little clarity. Every week.</span>
-    <label class="market-control"><span class="sr-only">Your country</span><select id="market" aria-label="Your country"><option value="US">US · USD</option><option value="GB">UK · GBP</option><option value="DE">DE · EUR</option><option value="KZ">KZ · KZT</option><option value="UZ">UZ · UZS</option></select></label>
-    <span id="locked-market" hidden></span>
   </header>
   <div id="preview-banner" class="preview-banner" hidden>Design preview <span>·</span> Live verification is not connected</div>
   <main id="main" tabindex="-1"></main>
-  <footer class="site-footer"><span>Made for a clearer week.</span><div><span>For iPhone</span><button type="button" id="privacy-button">Privacy &amp; this quiz</button></div></footer>
+  <footer class="site-footer"><span>Made for a clearer week.</span><div><label class="market-control"><span class="sr-only">Your country</span><select id="market" aria-label="Your country"><option value="US">US · USD</option><option value="GB">UK · GBP</option><option value="DE">DE · EUR</option><option value="KZ">KZ · KZT</option><option value="UZ">UZ · UZS</option></select></label><span id="locked-market" hidden></span><button type="button" id="privacy-button">Privacy &amp; this quiz</button></div></footer>
   <aside id="app-install-banner" class="app-install-banner" aria-labelledby="app-install-title" hidden>
     <div class="app-install-header">
       <img src="/assets/app-icon.webp" alt="" width="54" height="54">
@@ -36,11 +34,11 @@
     <button class="dialog-close icon-button" aria-label="Close privacy information">×</button>
     <span class="eyebrow">YOUR INFORMATION</span><h2 id="privacy-title">A little space for privacy.</h2>
     <p>Your quiz answers and optional amounts are held in this browser tab. They are not sent to our server or included in analytics. Reloading or starting again clears them.</p>
-    <p>On the live site, Cloudflare Turnstile receives technical information to check for automated traffic. Our Cloudflare backend validates only its verification token. If you accept optional analytics, Yandex Metrica records funnel events and campaign parameters, without quiz answers or financial amounts. Analytics is off by default.</p>
+    <p>On the live site, Cloudflare Turnstile receives technical information to check for automated traffic. Our Cloudflare backend validates only its verification token. If you enable optional analytics below, Yandex Metrica records funnel events and campaign parameters, without quiz answers or financial amounts. Analytics is off by default.</p>
+    <section id="analytics-settings" class="analytics-settings" hidden aria-labelledby="analytics-title"><h3 id="analytics-title">Optional analytics</h3><p id="analytics-status" role="status">Off. You can take the whole quiz without enabling it.</p><div><button type="button" id="decline-analytics" class="secondary small">Keep analytics off</button><button type="button" id="accept-analytics" class="primary small">Enable analytics</button></div></section>
     <p>Opening the App Store takes you to Apple. Answers and amounts are not transferred into the app. You will set up your plan there.</p>
     <a class="text-link" href="https://financialplan.pistonsky.dev/privacy" target="_blank" rel="noopener noreferrer">Read the app’s privacy policy ↗</a>
   </dialog>
-  <div id="analytics-choice" class="consent" hidden><p>Allow optional analytics to help us understand this quiz? Your answers and amounts are never included.</p><div><button id="decline-analytics" class="secondary small">No thanks</button><button id="accept-analytics" class="primary small">Allow analytics</button></div></div>
   <noscript><p class="noscript">Please enable JavaScript to take this interactive quiz.</p></noscript>
 </body>
 </html>
