@@ -35,15 +35,25 @@ let insightState = {guess:null,period:'weekly',stepOpen:false};
 let analyticsEnabled = false;
 let appInstallDismissed = false;
 const funnelEvents = [];
-const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_complete','captcha_verified','app_store_click','interlude_view','interlude_continue','interlude_skip','insight_reveal','budget_toggle']);
+const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_verify_view','quiz_complete','captcha_verified','app_store_click','interlude_view','interlude_continue','interlude_skip','insight_reveal','budget_toggle']);
 const campaign = Object.fromEntries(['utm_source','utm_medium','utm_campaign','utm_content','utm_term','yclid'].filter(k=>params.has(k)).map(k=>[k,params.get(k).slice(0,250)]));
 const formatMoney = value => new Intl.NumberFormat(markets[market].locale,{style:'currency',currency:markets[market].currency,maximumFractionDigits:0}).format(value);
 
 function track(name, step, card, placement) {
   if (!allowedEvents.has(name)) return;
   const event = { name, market, flow_version:'insights-v1', ...(Number.isInteger(step) ? { step: step + 1 } : {}), ...(interludes.some(item=>item.id===card)?{card}:{}), ...(['result_card','result_banner'].includes(placement)?{placement}:{}) };
-  funnelEvents.push(event);
-  if (analyticsEnabled && typeof window.ym === 'function') window.ym(config.metricaId,'reachGoal',name,{...event, ...campaign});
+  if (analyticsEnabled && typeof window.ym === 'function') sendAnalyticsEvent(event);
+  else funnelEvents.push(event);
+}
+
+function sendAnalyticsEvent(event) {
+  const goalNames=[event.name];
+  if(event.name==='quiz_step_view'&&Number.isInteger(event.step)&&event.step>=1&&event.step<=questions.length)goalNames.push(`quiz_step_${event.step}_view`);
+  if(event.name==='interlude_view'){
+    const goal={perspective:'quiz_insight_1_view',week:'quiz_insight_2_view',start:'quiz_insight_3_view'}[event.card];
+    if(goal)goalNames.push(goal);
+  }
+  for(const goal of goalNames)window.ym(config.metricaId,'reachGoal',goal,{...event,...campaign});
 }
 
 function syncAppInstallBanner() {
@@ -66,7 +76,7 @@ function startAnalytics() {
   window.ym(config.metricaId,'init',{clickmap:false,trackLinks:false,accurateTrackBounce:true,webvisor:false,defer:true});
   const hitUrl=new URL(location.origin+location.pathname);hitUrl.search=new URLSearchParams(campaign).toString();window.ym(config.metricaId,'hit',hitUrl.href,{title:'Weekly Finances quiz',params:campaign});
   // No financial inputs or answer values are included, including in queued events.
-  for (const event of funnelEvents) window.ym(config.metricaId,'reachGoal',event.name,{...event,...campaign});
+  for (const event of funnelEvents) sendAnalyticsEvent(event);
   funnelEvents.length=0;
 }
 
@@ -296,7 +306,7 @@ function render() {
   $('.market-control').hidden=screen!=='home';$('#locked-market').hidden=screen==='home';$('#locked-market').textContent=markets[market].currency;
   if (screen==='home') {main.innerHTML=hero();$('#start-quiz').onclick=()=>{track('quiz_start');navigate(0);};}
   else if(interludes.some(item=>item.screen===screen)){const item=interludes.find(item=>item.screen===screen);main.innerHTML=interludeMarkup(item);bindInterlude(item);track('interlude_view',undefined,item.id);}
-  else if (screen==='verify') {main.innerHTML=verifyMarkup();$('#go-back').onclick=()=>navigate(6);$('#show-plan').onclick=complete;mountCaptcha(renderVersion);}
+  else if (screen==='verify') {main.innerHTML=verifyMarkup();$('#go-back').onclick=()=>navigate(6);$('#show-plan').onclick=complete;track('quiz_verify_view');mountCaptcha(renderVersion);}
   else if (screen==='result') {
     main.innerHTML=resultMarkup();
     $('#app-store-link').onclick=()=>{track('app_store_click',undefined,undefined,'result_card');appInstallDismissed=true;syncAppInstallBanner();};

@@ -72,11 +72,15 @@ The production Worker cannot enter preview mode. Local design preview is limited
 
 ## Analytics
 
-Metrica counter `114081987` has two exact JavaScript goals: `quiz_complete` (ID `678849269`, verified plan displayed) and `app_store_click` (ID `678849315`, outbound App Store click). Analytics starts by default on the live site without a popup. The footer’s Privacy dialog explains the collection and allows visitors to turn it off; a saved explicit opt-out prevents script loading and event delivery. Webvisor, clickmap, automatic link tracking, automatic goals, ecommerce and Tag Manager are disabled. Financial inputs carry `ym-disable-keys` and the amount form carries `ym-disable-submit`. Quiz values and financial amounts are never sent. A store click is not an app install or a payment.
+Metrica counter `114081987` keeps the primary JavaScript goals `quiz_complete` (ID `678849269`, verified plan displayed) and `app_store_click` (ID `678849315`, outbound App Store click). Analytics starts by default on the live site without a popup. The footer’s Privacy dialog explains the collection and allows visitors to turn it off; a saved explicit opt-out prevents script loading and event delivery. Webvisor, clickmap, automatic link tracking, automatic goals, ecommerce and Tag Manager are disabled. Financial inputs carry `ym-disable-keys` and the amount form carries `ym-disable-submit`. Quiz values and financial amounts are never sent. A store click is not an app install or a payment.
 
 Advertising settings and budgets are kept outside this public source. Campaign launch and payment attribution require separate operational verification.
 
 The first recorded Metrica pageview retains the visit's `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` and `yclid` in its URL, as well as in event parameters. Other query parameters and the fragment are excluded. This preserves the advertising source for subsequent quiz and App Store goals; a real Direct click-to-goal attribution still requires report verification.
+
+Each question now has a separate `quiz_step_1_view` through `quiz_step_7_view` goal. The three intermediate screens use `quiz_insight_1_view` through `quiz_insight_3_view`, and entry to verification uses `quiz_verify_view`. The original generic events and their step/card metadata remain available. These goals record screen arrival, so the next screen measures progress beyond the preceding question or insight; verification arrival is distinct from successful completion. No answer values are added to analytics.
+
+The saved overview funnel follows page arrival → all seven questions → verified result → App Store click. Two overlapping detailed funnels include all intermediate screens and verification, because the current Metrica constructor allows ten steps per report. They display conversion from the previous step and losses between stages. Goal IDs, exact conditions and saved report links are listed in [the funnel map](weekly-finances-quiz/analytics/quiz-funnel.json). Step goals collect data from their creation/release onward; earlier quiz completions cannot reconstruct missing stage history. Use controlled `utm_source=qa` visits for verification and keep them separate from advertising results.
 
 ## Apple payment notifications
 

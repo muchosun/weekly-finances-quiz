@@ -1,0 +1,134 @@
+{
+  "counter_id": 114081987,
+  "stage_definition": "Reached the screen; counts and losses are calculated by the saved sequential funnels, not by summing raw goal reaches.",
+  "collection_started": "2026-11-06",
+  "goals": [
+    {
+      "event": "quiz_view",
+      "name": "Квиз · 00 — Открытие страницы",
+      "id": "679282481"
+    },
+    {
+      "event": "quiz_start",
+      "name": "Квиз · 00a — Нажатие «Начать»",
+      "id": "679282741"
+    },
+    {
+      "event": "quiz_step_1_view",
+      "name": "Квиз · 01 — Вопрос 1: финансовая цель",
+      "id": "679282776"
+    },
+    {
+      "event": "quiz_step_2_view",
+      "name": "Квиз · 02 — Вопрос 2: учёт денег",
+      "id": "679282778"
+    },
+    {
+      "event": "quiz_insight_1_view",
+      "name": "Квиз · 02a — Факт: непредвиденные расходы",
+      "id": "679282824"
+    },
+    {
+      "event": "quiz_step_3_view",
+      "name": "Квиз · 03 — Вопрос 3: частота дохода",
+      "id": "679282868"
+    },
+    {
+      "event": "quiz_step_4_view",
+      "name": "Квиз · 04 — Вопрос 4: суммы бюджета",
+      "id": "679282871"
+    },
+    {
+      "event": "quiz_insight_2_view",
+      "name": "Квиз · 04a — Интерактив: недельный бюджет",
+      "id": "679282943"
+    },
+    {
+      "event": "quiz_step_5_view",
+      "name": "Квиз · 05 — Вопрос 5: счета",
+      "id": "679283028"
+    },
+    {
+      "event": "quiz_step_6_view",
+      "name": "Квиз · 06 — Вопрос 6: главная трудность",
+      "id": "679283029"
+    },
+    {
+      "event": "quiz_insight_3_view",
+      "name": "Квиз · 06a — Совет: первый шаг",
+      "id": "679283098"
+    },
+    {
+      "event": "quiz_step_7_view",
+      "name": "Квиз · 07 — Вопрос 7: ритм",
+      "id": "679283115"
+    },
+    {
+      "event": "quiz_verify_view",
+      "name": "Квиз · 08 — Проверка перед результатом",
+      "id": "679283120"
+    },
+    {
+      "event": "quiz_complete",
+      "name": "Quiz completed — verified plan shown",
+      "id": "678849269"
+    },
+    {
+      "event": "app_store_click",
+      "name": "App Store — outbound click",
+      "id": "678849315"
+    }
+  ],
+  "reports": [
+    {
+      "name": "Квиз · Детально 1/2 — Вход → последний совет",
+      "url": "https://metrika.yandex.ru/stat/3866825b-3504-4f5c-b830-3d63cbb5e08a?id=114081987&period=today",
+      "events": [
+        "quiz_view",
+        "quiz_step_1_view",
+        "quiz_step_2_view",
+        "quiz_insight_1_view",
+        "quiz_step_3_view",
+        "quiz_step_4_view",
+        "quiz_insight_2_view",
+        "quiz_step_5_view",
+        "quiz_step_6_view",
+        "quiz_insight_3_view"
+      ],
+      "conversion_mode": "previous_step",
+      "window": "unlimited"
+    },
+    {
+      "name": "Квиз · Детально 2/2 — Вопрос 6 → App Store",
+      "url": "https://metrika.yandex.ru/stat/51ee050a-03e8-4ed5-b4d3-0a8244ed7992?id=114081987&period=today",
+      "events": [
+        "quiz_step_6_view",
+        "quiz_insight_3_view",
+        "quiz_step_7_view",
+        "quiz_verify_view",
+        "quiz_complete",
+        "app_store_click"
+      ],
+      "conversion_mode": "previous_step",
+      "window": "unlimited"
+    },
+    {
+      "name": "Квиз · Вся воронка — 7 вопросов → App Store",
+      "url": "https://metrika.yandex.ru/stat/ec1a2be5-c03b-4cfe-aabc-06687da6ad65?id=114081987&period=today",
+      "events": [
+        "quiz_view",
+        "quiz_step_1_view",
+        "quiz_step_2_view",
+        "quiz_step_3_view",
+        "quiz_step_4_view",
+        "quiz_step_5_view",
+        "quiz_step_6_view",
+        "quiz_step_7_view",
+        "quiz_complete",
+        "app_store_click"
+      ],
+      "conversion_mode": "previous_step",
+      "window": "unlimited"
+    }
+  ]
+}
