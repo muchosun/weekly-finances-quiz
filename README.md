@@ -76,6 +76,8 @@ Metrica counter `114081987` has two exact JavaScript goals: `quiz_complete` (ID 
 
 Advertising settings and budgets are kept outside this public source. Campaign launch and payment attribution require separate operational verification.
 
+The first recorded Metrica pageview retains the visit's `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` and `yclid` in its URL, as well as in event parameters. Other query parameters and the fragment are excluded. This preserves the advertising source for subsequent quiz and App Store goals; a real Direct click-to-goal attribution still requires report verification.
+
 ## Apple payment notifications
 
 The Cloudflare Worker accepts signed App Store Server Notifications V2 at `/api/apple/notifications/production` and `/api/apple/notifications/sandbox`. It uses Apple's server library and public Apple trust anchors, with certificate revocation checks enabled. A D1 ledger records minimal verified transaction data and deduplicates notifications and first-payment conversions. Financial quiz answers are not collected.

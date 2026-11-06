@@ -64,7 +64,7 @@ function startAnalytics() {
   window.ym.l = Date.now();
   if(!$('#metrica-script')){const script = document.createElement('script');script.id='metrica-script';script.src='https://mc.yandex.ru/metrika/tag.js';script.async=true;document.head.append(script);}
   window.ym(config.metricaId,'init',{clickmap:false,trackLinks:false,accurateTrackBounce:true,webvisor:false,defer:true});
-  window.ym(config.metricaId,'hit',location.origin+location.pathname,{title:'Weekly Finances quiz',params:campaign});
+  const hitUrl=new URL(location.origin+location.pathname);hitUrl.search=new URLSearchParams(campaign).toString();window.ym(config.metricaId,'hit',hitUrl.href,{title:'Weekly Finances quiz',params:campaign});
   // No financial inputs or answer values are included, including in queued events.
   for (const event of funnelEvents) window.ym(config.metricaId,'reachGoal',event.name,{...event,...campaign});
   funnelEvents.length=0;
