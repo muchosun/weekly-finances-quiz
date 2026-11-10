@@ -14,7 +14,7 @@ Sandbox: https://weekly-finances-quiz.muchosun.workers.dev/api/apple/notificatio
 
 Что нужно добавить в iOS
 
-1. Поддержать вход по Universal Link, из которого приложение получает случайный UUID — appAccountToken. Пришли нам Apple Team ID, точный bundle ID из entitlements и согласуем домен/путь ссылки. Затем мы добавим apple-app-site-association и веб-переход. Сейчас готовой ссылки открытия приложения ещё нет.
+1. Поддержать вход по Universal Link, из которого приложение получает случайный UUID — appAccountToken. Контракт согласован в pistonsky/financial-plan-app#40: https://financialplan.pistonsky.dev/open?token=<appAccountToken>, строго /open без завершающего слеша. AASA опубликована владельцем домена и доступна Apple CDN. appID: F2UDUTZH7S.com.pistonsky.FinancialPlan. Кнопка открытия находится на домене квиза; fallback просит вернуться в исходную вкладку после установки.
 
 2. Сохранить полученный UUID как устойчивый идентификатор анонимного пользователя. Не генерировать его на каждую покупку. Не заменять существующий токен уже платившего пользователя новой рекламной меткой. Предусмотреть безопасное хранение и повторный запуск.
 
@@ -28,11 +28,17 @@ Sandbox: https://weekly-finances-quiz.muchosun.workers.dev/api/apple/notificatio
 
 4. Для теста вызвать App Store Server API requestTestNotification существующим ключом разработчика, затем проверить статус по testNotificationToken. Ключи Apple и shared secret передавать нам не требуется. Провести sandbox-сценарии: первая платная подписка, бесплатный trial и первое списание, повторное продление, восстановление и возврат. Прислать время тестов и transactionId через закрытый канал, без ключей и полных чеков.
 
-Что добавим на стороне квиза
+Что опубликовано на стороне квиза 10 ноября 2026
 
-После успешной Turnstile-проверки квиз передаст в /api/complete token и необязательный объект attribution: analyticsAllowed=true, clientId и/или yclid. При включённой интеграции ответ содержит appAccountToken, связанный с ClientID/yclid в Cloudflare. Финансовые ответы квиза не передаются.
+После успешной Turnstile-проверки квиз передаёт в /api/complete token и необязательный объект attribution: analyticsAllowed=true, clientId и/или yclid. Ответ содержит appAccountToken и appAccountTokenExpiresAt (Unix ms), связанные с ClientID/yclid в Cloudflare. Финансовые ответы квиза не передаются. Без разрешения аналитики или без обоих идентификаторов обычный квиз работает, но UUID атрибуции не создаётся.
 
-Эта часть пока выключена флагом PAYMENT_ATTRIBUTION_ENABLED=0. Веб-переход с UUID, Universal Link и iOS-обработчик должны заработать вместе. Экспорт в Метрику также выключен: PAYMENT_EXPORT_ENABLED=0; требуется секрет METRICA_OAUTH_TOKEN в Cloudflare. Владелец вводит его непосредственно в Cloudflare, без чата и GitHub.
+Выдача UUID включена флагом PAYMENT_ATTRIBUTION_ENABLED=1. Браузер сохраняет только UUID и срок действия на 21 день. После перезагрузки показывается отдельный экран продолжения с тем же UUID; /api/complete и quiz_complete повторно не вызываются. «Start a new plan» удаляет сохранённый переход. При недоступном localStorage ссылка работает в текущей странице, но перезагрузка её не восстановит.
+
+Экспорт оплат в Метрику остаётся выключенным: PAYMENT_EXPORT_ENABLED=0; требуется завершить тест на iPhone и sandbox-сверку, затем настроить секрет METRICA_OAUTH_TOKEN в Cloudflare. Владелец вводит его непосредственно в Cloudflare, без чата и GitHub. Оптимизация рекламы остаётся на quiz_complete.
+
+Веб-проверка выполнена на опубликованном Worker: реальная Turnstile-проверка → выдача UUID → одна запись D1 с ClientID → перезагрузка с тем же UUID → переход на /open → возврат с тем же UUID. Проверены desktop и ширина 390 px. Сетевой журнал перезагрузки содержит quiz_view, без повторного /api/complete и quiz_complete. Это не проверка открытия установленного iOS-приложения или покупки: их выполняет разработчик.
+
+Для проверки разработчиком: пройти https://weekly-finances-quiz.muchosun.workers.dev/?utm_source=qa&utm_medium=verification&utm_campaign=qa_ios_handoff_20261110 на iPhone со сборкой PR #40. После результата установить/открыть приложение через кнопку квиза. Проверить холодный/тёплый запуск и возврат после установки с тем же UUID. Выполнить sandbox-покупку и передать время + transactionId через закрытый канал; UUID должен совпасть в подписанной транзакции Apple и D1. Не присылать ключи и полные чеки. Sandbox не должен увеличивать production-цель оплаты.
 
 Ограничение установки без регистрации
 

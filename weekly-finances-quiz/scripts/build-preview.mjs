@@ -7,10 +7,11 @@ const css=await readFile(new URL('dist/styles.css',base),'utf8');
 const model=(await readFile(new URL('dist/quiz-model.mjs',base),'utf8')).replace(/^export /gm,'');
 const stripImports=text=>text.replace(/^import .+ from '\.\/[^']+\.mjs';\n/gm,'');
 const insightModel=stripImports(await readFile(new URL('dist/interlude-model.mjs',base),'utf8')).replace(/^export /gm,'');
+const handoffModel=stripImports(await readFile(new URL('dist/app-handoff.mjs',base),'utf8')).replace(/^export /gm,'');
 const app=stripImports(await readFile(new URL('dist/app.mjs',base),'utf8'));
 html=html.replace('<meta charset="UTF-8">',worker?'<meta charset="UTF-8">':'<meta charset="UTF-8">\n  <meta name="wf-static-preview" content="true">')
   .replace('<link rel="stylesheet" href="/styles.css">',()=>`<style>${css}</style>`)
-  .replace('<script type="module" src="/app.mjs"></script>',()=>`<script type="module">${model}\n${insightModel}\n${app}</script>`);
+  .replace('<script type="module" src="/app.mjs"></script>',()=>`<script type="module">${model}\n${insightModel}\n${handoffModel}\n${app}</script>`);
 for(const file of (await readdir(new URL('dist/assets/',base))).filter(file=>file.endsWith('.webp')).sort()){
   const image='data:image/webp;base64,'+(await readFile(new URL('dist/assets/'+file,base))).toString('base64');
   html=html.replaceAll('/assets/'+file,image);

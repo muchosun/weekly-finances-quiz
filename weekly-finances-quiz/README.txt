@@ -95,6 +95,25 @@ a psychometric score. Answers are not transferred into the app.
 APPLE NOTIFICATIONS
 Production and sandbox V2 notifications have separate /api/apple/notifications/
 endpoints. A D1 ledger retains verified transaction information, without quiz
-answers. Payment attribution/export remain off pending appAccountToken handoff
+answers. PAYMENT_ATTRIBUTION_ENABLED=1 issues an appAccountToken after successful
+Turnstile verification when analytics permission and a ClientID or yclid are
+available. PAYMENT_EXPORT_ENABLED remains 0 pending device/sandbox verification
 and Metrica OAuth configuration. See payments/DEVELOPER_HANDOFF.txt.
 Run npm run build:deploy before deploying the bundled Worker. Preserve secrets.
+
+APP OPENING AND RETURN AFTER INSTALLATION
+The result includes a plain link to
+https://financialplan.pistonsky.dev/open?token=<appAccountToken>.
+The link host serves the AASA file; the canonical path is /open, without a slash.
+Only the server-issued UUID, its expiry and a storage version are persisted under
+wf-app-handoff-v1. No quiz answers, financial amounts, ClientID or yclid are saved
+in that record. The 21-day expiry matches the server attribution window.
+Reloading the quiz restores an app-opening screen with the same UUID and does
+not resubmit /api/complete or send another quiz_complete goal. Start a new plan
+clears the browser record. Expired/corrupted records are ignored.
+After installation, return to the original quiz tab and tap Open Weekly Finances.
+The App Store cannot pass this UUID into a fresh install automatically.
+If browser storage is unavailable, the link still works in the current page,
+but cannot be restored after a reload. Without analytics identifiers the normal
+quiz and App Store links work, with no fabricated attribution token.
+app_open_click is only an opening intent; it is not an installation or payment.

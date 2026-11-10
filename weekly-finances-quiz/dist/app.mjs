@@ -1,5 +1,6 @@
 import { questions, markets, makePlan, storeUrl, campaignUrlForVisit } from './quiz-model.mjs';
 import { interludes, facts, survey, afterQuestion, beforeQuestion, budgetSnapshot } from './interlude-model.mjs';
+import { validAppHandoff, loadAppHandoff, saveAppHandoff, clearAppHandoff, appOpenUrl, analyticsAttribution } from './app-handoff.mjs';
 
 const paths = {
   arrow:'M4 12h16m-6-6 6 6-6 6', back:'M20 12H4m6-6-6 6 6 6', check:'m5 12 4 4L19 6',
@@ -34,14 +35,15 @@ let lastChoiceAt = 0;
 let insightState = {guess:null,period:'weekly',stepOpen:false};
 let analyticsEnabled = false;
 let appInstallDismissed = false;
+let appHandoff = null;
 const funnelEvents = [];
-const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_verify_view','quiz_complete','captcha_verified','app_store_click','interlude_view','interlude_continue','interlude_skip','insight_reveal','budget_toggle']);
+const allowedEvents = new Set(['quiz_view','quiz_start','quiz_step_view','quiz_answer','quiz_verify_view','quiz_complete','captcha_verified','app_store_click','app_open_click','interlude_view','interlude_continue','interlude_skip','insight_reveal','budget_toggle']);
 const campaign = Object.fromEntries(['utm_source','utm_medium','utm_campaign','utm_content','utm_term','yclid'].filter(k=>params.has(k)).map(k=>[k,params.get(k).slice(0,250)]));
 const formatMoney = value => new Intl.NumberFormat(markets[market].locale,{style:'currency',currency:markets[market].currency,maximumFractionDigits:0}).format(value);
 
 function track(name, step, card, placement) {
   if (!allowedEvents.has(name)) return;
-  const event = { name, market, flow_version:'insights-v1', ...(Number.isInteger(step) ? { step: step + 1 } : {}), ...(interludes.some(item=>item.id===card)?{card}:{}), ...(['result_card','result_banner'].includes(placement)?{placement}:{}) };
+  const event = { name, market, flow_version:'insights-v1', ...(Number.isInteger(step) ? { step: step + 1 } : {}), ...(interludes.some(item=>item.id===card)?{card}:{}), ...(['result_card','result_banner','resume_card'].includes(placement)?{placement}:{}) };
   if (analyticsEnabled && typeof window.ym === 'function') sendAnalyticsEvent(event);
   else funnelEvents.push(event);
 }
@@ -54,6 +56,52 @@ function sendAnalyticsEvent(event) {
     if(goal)goalNames.push(goal);
   }
   for(const goal of goalNames)window.ym(config.metricaId,'reachGoal',goal,{...event,...campaign});
+}
+
+function handoffStorage() {
+  try { return window.localStorage; } catch { return null; }
+}
+
+function resetAppHandoff() {
+  appHandoff=null;
+  clearAppHandoff(handoffStorage());
+}
+
+async function completionAttribution() {
+  let clientId;
+  if(analyticsEnabled && typeof window.ym==='function' && config.metricaId){
+    clientId=await new Promise(resolve=>{
+      const timer=setTimeout(()=>resolve(undefined),1200);
+      try{window.ym(config.metricaId,'getClientID',value=>{clearTimeout(timer);resolve(value);});}
+      catch{clearTimeout(timer);resolve(undefined);}
+    });
+  }
+  return analyticsAttribution({allowed:analyticsEnabled,clientId,yclid:campaign.yclid});
+}
+
+function appOpenPanel(resume=false) {
+  const href=appOpenUrl(appHandoff);
+  if(!href)return '';
+  return `<div class="app-handoff"><h3>${resume?'Installed the app?':'After installing'}</h3><p>Keep this tab open. After installing Weekly Finances, return here and tap the button below.</p><a class="${resume?'primary':'secondary'} app-open-link" id="app-open-link" href="${href}" rel="noreferrer">Open Weekly Finances ${icon('arrow')}</a><p class="price-note" id="app-open-status" aria-live="polite">Your quiz answers stay here. Set up your plan in the app.</p></div>`;
+}
+
+function resumeMarkup() {
+  return `<section class="resume-layout fade-in"><div class="store-card"><div class="store-brand"><img src="/assets/app-icon.webp" alt=""><div><b>Weekly Finances</b><small>Weekly money planning for iPhone</small></div></div><span class="eyebrow">PICK UP WHERE YOU LEFT OFF</span><h1>Continue on your iPhone.</h1><p>You can open Weekly Finances without taking the quiz again.</p>${appOpenPanel(true)}<a class="secondary resume-install-link" id="app-store-link" href="${storeUrl(market,campaignUrlForVisit(params,config.appStoreCampaignUrl))}" target="_blank" rel="noopener noreferrer">${apple}Install from the App Store</a><p class="price-note">Free to download · Optional Premium subscription.</p><button class="text-button" id="start-again">Start a new plan</button></div></section>`;
+}
+
+function bindAppOpenLink() {
+  const link=$('#app-open-link');
+  if(!link)return;
+  link.onclick=event=>{
+    if(!appOpenUrl(appHandoff)){
+      event.preventDefault();resetAppHandoff();
+      link.hidden=true;
+      $('#app-open-status').textContent='This link has expired. Start a new plan to continue.';
+      return;
+    }
+    // This records a tap, not an installation or a purchase. Keep native link navigation.
+    track('app_open_click',undefined,undefined,screen==='resume'?'resume_card':'result_card');
+  };
 }
 
 function syncAppInstallBanner() {
@@ -193,7 +241,7 @@ function resultMarkup() {
   const estimate = plan.estimate;
   const negative = estimate?.weekly < 0;
   const amountPanel = estimate ? `<div class="estimate-card"><span class="eyebrow">${negative?'A GAP TO PLAN AROUND':'YOUR ILLUSTRATIVE WEEKLY ROOM'}</span><div class="estimate-amount">${formatMoney(Math.abs(estimate.weekly))}<small> / week</small></div><p>${negative?'Your planned monthly costs and savings exceed the income you entered. Review commitments before setting a spending target.':`After the monthly bills and savings you entered. This does not account for payment timing or costs you have not included.`}</p><p style="margin-top:10px">(${formatMoney(answers.numbers.income)} − ${formatMoney(answers.numbers.essentials)} − ${formatMoney(answers.numbers.savings)}) × 12 ÷ 52. Monthly averages, not a cash-flow forecast.</p></div>` : `<div class="estimate-card"><span class="eyebrow">YOUR STARTING POINT</span><div class="estimate-amount" style="font-size:31px;letter-spacing:-1px">One week at a time.</div><p>You skipped the amounts. Start with a balance snapshot, then add planned income and expenses when you are ready.</p></div>`;
-  return `<section class="result-layout fade-in"><div class="result-heading"><div class="result-check">${icon('check')}</div><span class="eyebrow">YOUR PERSONALISED STARTING POINT</span><h1>${plan.name}</h1><p>${plan.line}</p></div><div class="result-grid"><div class="plan-card"><h2>Your next three small steps</h2><p class="plan-why">${plan.why}</p>${plan.steps.map((step,i)=>`<div class="plan-step"><span class="step-number">${i+1}</span><div><small>${step.when}</small><h3>${step.title}</h3><p>${step.body}</p></div></div>`).join('')}</div><div>${amountPanel}<div class="store-card"><div class="store-brand"><img src="/assets/app-icon.webp" alt=""><div><b>Weekly Finances</b><small>Weekly money planning for iPhone</small></div></div><p>Bring this routine into your week. Track balances, plan recurring expenses and look ahead in one place.</p><a class="primary" id="app-store-link" href="${storeUrl(market,campaignUrlForVisit(params,config.appStoreCampaignUrl))}" target="_blank" rel="noopener noreferrer">${apple}Get Weekly Finances ${icon('arrow')}</a><p class="price-note">Free to download · Optional Premium subscription.</p><p class="price-note">${market==='US'?'US App Store lists $1.99/month or $19.99/year. Prices and terms shown by Apple at purchase apply.':'Local availability, prices and subscription terms are shown in your App Store.'}</p><p class="price-note">Your quiz answers do not transfer to the app. Set up your plan after installing.</p></div></div></div><div class="result-foot"><button class="text-button" id="start-again">Start again</button><p>A suggested routine based on your answers, not a financial assessment. Estimates use the figures you entered. Results are not guaranteed.</p></div></section>`;
+  return `<section class="result-layout fade-in"><div class="result-heading"><div class="result-check">${icon('check')}</div><span class="eyebrow">YOUR PERSONALISED STARTING POINT</span><h1>${plan.name}</h1><p>${plan.line}</p></div><div class="result-grid"><div class="plan-card"><h2>Your next three small steps</h2><p class="plan-why">${plan.why}</p>${plan.steps.map((step,i)=>`<div class="plan-step"><span class="step-number">${i+1}</span><div><small>${step.when}</small><h3>${step.title}</h3><p>${step.body}</p></div></div>`).join('')}</div><div>${amountPanel}<div class="store-card"><div class="store-brand"><img src="/assets/app-icon.webp" alt=""><div><b>Weekly Finances</b><small>Weekly money planning for iPhone</small></div></div><p>Bring this routine into your week. Track balances, plan recurring expenses and look ahead in one place.</p><a class="primary" id="app-store-link" href="${storeUrl(market,campaignUrlForVisit(params,config.appStoreCampaignUrl))}" target="_blank" rel="noopener noreferrer">${apple}Get Weekly Finances ${icon('arrow')}</a>${appOpenPanel()}<p class="price-note">Free to download · Optional Premium subscription.</p><p class="price-note">${market==='US'?'US App Store lists $1.99/month or $19.99/year. Prices and terms shown by Apple at purchase apply.':'Local availability, prices and subscription terms are shown in your App Store.'}</p><p class="price-note">Your quiz answers do not transfer to the app. Set up your plan after installing.</p></div></div></div><div class="result-foot"><button class="text-button" id="start-again">Start again</button><p>A suggested routine based on your answers, not a financial assessment. Estimates use the figures you entered. Results are not guaranteed.</p></div></section>`;
 }
 
 function bindQuestion(index) {
@@ -287,9 +335,14 @@ async function complete() {
   if (staticPreview && config.preview) { track('quiz_complete');navigate('result');return; }
   busy=true;const button=$('#show-plan');button.disabled=true;button.textContent='Preparing your plan…';
   try {
-    const response=await fetch('/api/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:captchaToken}),signal:AbortSignal.timeout(15000)});
+    const attribution=config.paymentAttributionReady&&!config.preview?await completionAttribution():null;
+    const response=await fetch('/api/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:captchaToken,...(attribution?{attribution}:{})}),signal:AbortSignal.timeout(15000)});
     const result=await response.json();
     if(!response.ok||!result.ok||(!config.preview&&result.verified!==true))throw new Error(result.error||'Verification failed. Please try again.');
+    if(result.verified && config.paymentAttributionReady){
+      appHandoff=validAppHandoff({version:1,token:result.appAccountToken,expiresAt:result.appAccountTokenExpiresAt});
+      if(appHandoff)saveAppHandoff(handoffStorage(),appHandoff);
+    }
     if(result.verified)track('captcha_verified');
     track('quiz_complete');busy=false;navigate('result');
   } catch(error) {
@@ -304,13 +357,14 @@ function render() {
   renderVersion++;
   document.body.dataset.screen=typeof screen==='number'?'question':screen;
   $('.market-control').hidden=screen!=='home';$('#locked-market').hidden=screen==='home';$('#locked-market').textContent=markets[market].currency;
-  if (screen==='home') {main.innerHTML=hero();$('#start-quiz').onclick=()=>{track('quiz_start');navigate(0);};}
+  if (screen==='home') {main.innerHTML=hero();$('#start-quiz').onclick=()=>{resetAppHandoff();track('quiz_start');navigate(0);};}
   else if(interludes.some(item=>item.screen===screen)){const item=interludes.find(item=>item.screen===screen);main.innerHTML=interludeMarkup(item);bindInterlude(item);track('interlude_view',undefined,item.id);}
   else if (screen==='verify') {main.innerHTML=verifyMarkup();$('#go-back').onclick=()=>navigate(6);$('#show-plan').onclick=complete;track('quiz_verify_view');mountCaptcha(renderVersion);}
-  else if (screen==='result') {
-    main.innerHTML=resultMarkup();
-    $('#app-store-link').onclick=()=>{track('app_store_click',undefined,undefined,'result_card');appInstallDismissed=true;syncAppInstallBanner();};
-    $('#start-again').onclick=()=>{answers={};numberDraft={};insightState={guess:null,period:'weekly',stepOpen:false};navigate('home');};
+  else if (screen==='result'||screen==='resume') {
+    main.innerHTML=screen==='result'?resultMarkup():resumeMarkup();
+    bindAppOpenLink();
+    $('#app-store-link').onclick=()=>{track('app_store_click',undefined,undefined,screen==='resume'?'resume_card':'result_card');appInstallDismissed=true;syncAppInstallBanner();};
+    $('#start-again').onclick=()=>{resetAppHandoff();answers={};numberDraft={};insightState={guess:null,period:'weekly',stepOpen:false};navigate('home');};
   } else {main.innerHTML=questionMarkup(screen);bindQuestion(screen);track('quiz_step_view',screen);}
   syncAppInstallBanner();
 }
@@ -319,14 +373,15 @@ $('#dismiss-app-install').onclick=()=>{appInstallDismissed=true;syncAppInstallBa
 $('#app-install-link').onclick=()=>{track('app_store_click',undefined,undefined,'result_banner');appInstallDismissed=true;syncAppInstallBanner();};
 window.addEventListener('resize',syncAppInstallBanner);
 $('#market').value=market;
-$('#market').onchange=e=>{market=e.target.value;answers={};numberDraft={};insightState={guess:null,period:'weekly',stepOpen:false};const url=new URL(location.href);url.searchParams.set('market',market);history.replaceState({quizScreen:'home'},'',url);render();};
+$('#market').onchange=e=>{resetAppHandoff();market=e.target.value;answers={};numberDraft={};insightState={guess:null,period:'weekly',stepOpen:false};const url=new URL(location.href);url.searchParams.set('market',market);history.replaceState({quizScreen:'home'},'',url);render();};
 $('#privacy-button').onclick=()=>$('#privacy-dialog').showModal();
 $('.dialog-close').onclick=()=>$('#privacy-dialog').close();
 $('.brand').onclick=e=>{e.preventDefault();if(busy)return;answers={};numberDraft={};insightState={guess:null,period:'weekly',stepOpen:false};navigate('home');};
 window.addEventListener('popstate',e=>{
   if (busy) { history.pushState({quizScreen:screen},'',location.href); return; }
   let next=e.state?.quizScreen ?? 'home';
-  if(next!=='home' && !answers.goal)next='home';
+  if(['result','resume'].includes(next)&&!answers.goal&&appOpenUrl(appHandoff))next='resume';
+  else if(next!=='home' && !answers.goal)next='home';
   navigate(next,false);
 });
 history.replaceState({quizScreen:'home'},'',location.href);
@@ -347,5 +402,9 @@ if (config.metricaId && !config.preview) {
     if(analyticsEnabled){analyticsEnabled=false;window.ym?.(config.metricaId,'destruct');funnelEvents.length=0;}
     syncAnalyticsSettings();$('#privacy-dialog').close();
   };
+}
+if(config.paymentAttributionReady&&!config.preview){
+  appHandoff=loadAppHandoff(handoffStorage());
+  if(appHandoff){screen='resume';history.replaceState({quizScreen:'resume'},'',location.href);}
 }
 track('quiz_view');render();

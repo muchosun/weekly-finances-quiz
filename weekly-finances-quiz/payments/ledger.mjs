@@ -1,5 +1,5 @@
 import { uuid } from './apple.mjs';
-const WINDOW=21*86400000;
+export const ATTRIBUTION_WINDOW_MS=21*86400000;
 
 export function validAttribution(data) {
   return data&&typeof data==='object'&&!Array.isArray(data)&&
@@ -12,7 +12,7 @@ export function validAttribution(data) {
 export async function createAttribution(db,data,now=Date.now()) {
   if(!validAttribution(data))throw Object.assign(new Error('Invalid attribution'),{status:400});
   const appAccountToken=crypto.randomUUID();
-  await db.prepare('INSERT INTO payment_attribution VALUES (?, ?, ?, ?, ?)').bind(appAccountToken,data.clientId||null,data.yclid||null,now,now+WINDOW).run();
+  await db.prepare('INSERT INTO payment_attribution VALUES (?, ?, ?, ?, ?)').bind(appAccountToken,data.clientId||null,data.yclid||null,now,now+ATTRIBUTION_WINDOW_MS).run();
   return appAccountToken;
 }
 

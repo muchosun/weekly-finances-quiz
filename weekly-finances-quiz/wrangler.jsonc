@@ -17,7 +17,7 @@
     "TURNSTILE_SITE_KEY": "0x4AAAAAAF0cK3xigP8U99Sl",
     "METRICA_COUNTER_ID": "114081987",
     "APP_STORE_CAMPAIGN_URL": "https://apps.apple.com/app/apple-store/id6756235224?pt=118822485&ct=wf_us_en_ios_quiz_01&mt=8",
-    "PAYMENT_ATTRIBUTION_ENABLED": "0",
+    "PAYMENT_ATTRIBUTION_ENABLED": "1",
     "PAYMENT_EXPORT_ENABLED": "0"
   },
   "d1_databases": [{"binding":"PAYMENTS_DB","database_name":"weekly-finances-payments","database_id":"782953ef-a0d1-437e-9f59-45edb8c90ee2","migrations_dir":"payments"}],

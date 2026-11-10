@@ -6,6 +6,8 @@ import { APPLE_BUNDLE_ID,normalizeTransaction,verifyApple } from '../payments/ap
 import { createAttribution,recordNotification,validAttribution } from '../payments/ledger.mjs';
 import { flushPayments,conversionCsv } from '../payments/metrica.mjs';
 import { appleNotification } from '../payments/handler.mjs';
+import { createHandler } from '../worker-handler.mjs';
+import { ATTRIBUTION_WINDOW_MS } from '../payments/ledger.mjs';
 
 const now=Date.now(),product='com.financialplan.premium.monthly';
 const base={bundleId:APPLE_BUNDLE_ID,environment:'Production',transactionId:'10001',originalTransactionId:'10001',appTransactionId:'50001',productId:product,price:1990,currency:'USD',purchaseDate:now-1000,originalPurchaseDate:now-1000,inAppOwnershipType:'PURCHASED',type:'Auto-Renewable Subscription',transactionReason:'PURCHASE',quantity:1};
@@ -24,6 +26,25 @@ test('attribution requires explicit analytics permission and numeric string IDs'
   assert.equal(validAttribution({analyticsAllowed:true,clientId:'123'}),true);
   for(const value of [{clientId:'123'},{analyticsAllowed:false,clientId:'123'},{analyticsAllowed:true,clientId:123},{analyticsAllowed:true,clientId:'=FORMULA'},{analyticsAllowed:true,clientId:'123',income:4000}])assert.equal(Boolean(validAttribution(value)),false);
 });
+test('verified quiz completion stores the ID mapping and returns only the app token and expiry',()=>fixture(async db=>{
+  const origin='https://quiz.example';
+  const request=()=>new Request(origin+'/api/complete',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({token:'local-fixture-verification',attribution:{analyticsAllowed:true,clientId:'123',yclid:'456'}})});
+  const env={PUBLIC_ORIGIN:origin,PAYMENTS_DB:db,PAYMENT_ATTRIBUTION_ENABLED:'1'};
+  const approved=createHandler({verify:async()=>({ok:true,status:200,verified:true})});
+  const start=Date.now();
+  const body=await (await approved(request(),env)).json();
+  assert.equal(body.verified,true);
+  assert.match(body.appAccountToken,/^[0-9a-f-]{36}$/);
+  const stored=await db.prepare('SELECT * FROM payment_attribution WHERE app_account_token=?').bind(body.appAccountToken).first();
+  assert.equal(stored.client_id,'123');assert.equal(stored.yclid,'456');
+  assert.equal(body.appAccountTokenExpiresAt,stored.expires_at);
+  assert.ok(body.appAccountTokenExpiresAt>=start+ATTRIBUTION_WINDOW_MS);
+  assert.deepEqual(Object.keys(body).sort(),['appAccountToken','appAccountTokenExpiresAt','ok','status','verified']);
+  assert.equal((await (await approved(request(),{...env,PAYMENT_ATTRIBUTION_ENABLED:'0'})).json()).appAccountToken,undefined);
+  const denied=createHandler({verify:async()=>({ok:false,status:403,verified:false})});
+  assert.equal((await (await denied(request(),env)).json()).appAccountToken,undefined);
+  assert.equal(await count(db,'payment_attribution'),1);
+}));
 test('first linked production payment is queued once, including concurrent duplicate deliveries',()=>fixture(async db=>{
   const appAccountToken=await linked(db),n=notification(),t={...base,appAccountToken};
   await Promise.all([save(db,n,t),save(db,n,t)]);

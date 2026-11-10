@@ -1,6 +1,6 @@
 import { verifyCaptcha } from './captcha.mjs';
 import { appleNotification } from './payments/handler.mjs';
-import { createAttribution,validAttribution } from './payments/ledger.mjs';
+import { ATTRIBUTION_WINDOW_MS,createAttribution,validAttribution } from './payments/ledger.mjs';
 import { smartAppBannerContent } from './dist/quiz-model.mjs';
 
 const baseHeaders = {
@@ -50,8 +50,9 @@ export function createHandler({html,csp,verify=verifyCaptcha}) {
       const result=await verify(data.token,{secret:env.TURNSTILE_SECRET,expectedHost:env.TURNSTILE_EXPECTED_HOST});
       // Never log the token, upstream response, request body, or financial answers.
       if(result.ok&&result.verified&&data.attribution&&env.PAYMENT_ATTRIBUTION_ENABLED==='1'&&env.PAYMENTS_DB){
-        const appAccountToken=await createAttribution(env.PAYMENTS_DB,data.attribution);
-        return json(result.status,{...result,appAccountToken});
+        const createdAt=Date.now();
+        const appAccountToken=await createAttribution(env.PAYMENTS_DB,data.attribution,createdAt);
+        return json(result.status,{...result,appAccountToken,appAccountTokenExpiresAt:createdAt+ATTRIBUTION_WINDOW_MS});
       }
       return json(result.status,result);
     }

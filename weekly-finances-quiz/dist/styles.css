@@ -180,3 +180,16 @@
   .trust-line{margin-top:10px}
   .flow-strip{display:none}
 }
+
+.app-handoff{margin:20px 0;padding:18px 0;border-top:1px solid var(--line)}
+.app-handoff h3{font-size:16px;margin:0 0 10px}
+.app-handoff>p{font-size:13px;line-height:1.55;color:var(--muted)}
+.app-open-link{display:flex;width:100%;align-items:center;justify-content:center;gap:12px;min-height:52px}
+.app-open-link svg,.resume-install-link svg{width:18px;height:18px;flex-shrink:0}
+.resume-layout{max-width:500px;margin:20px auto}
+.resume-layout .eyebrow{display:block;margin-top:26px}
+.resume-layout h1{font-size:32px;line-height:1.15;letter-spacing:-1px;margin:15px 0}
+.resume-layout .app-handoff{margin:20px 0 14px}
+.resume-install-link{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;text-align:center}
+.resume-layout #start-again{display:block;margin:14px auto 0}
+@media(max-width:760px){.resume-layout{margin:0 auto}.resume-layout .store-card{padding:23px 19px}.resume-layout h1{font-size:29px}}
