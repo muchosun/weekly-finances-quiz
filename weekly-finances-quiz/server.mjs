@@ -1,3 +1,5 @@
+import { appAssociation } from './app-association.mjs';
+import { appOpenUrl, bannerHandoff } from './dist/app-handoff.mjs';
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +22,7 @@ function json(res,status,data){res.writeHead(status,{...headers,'Content-Type':'
 const server=http.createServer(async(req,res)=>{
   try {
     const url=new URL(req.url,origin);
+    if(url.pathname==='/.well-known/apple-app-site-association' && ['GET','HEAD'].includes(req.method)){res.writeHead(200,{...headers,'Content-Type':'application/json'});res.end(req.method==='HEAD'?undefined:JSON.stringify(appAssociation));return;}
     if(req.method==='GET' && url.pathname==='/api/config') return json(res,200,{
       preview,captchaReady:Boolean(clientKey&&secret&&expectedHost),captchaClientKey:clientKey,
       metricaId:/^\d+$/.test(process.env.METRICA_COUNTER_ID||'')?Number(process.env.METRICA_COUNTER_ID):null,
@@ -42,7 +45,8 @@ const server=http.createServer(async(req,res)=>{
     if(!file.startsWith(root+path.sep)||pathname.split('/').some(part=>part.startsWith('.')))return json(res,404,{error:'Not found.'});
     let content=await readFile(file);
     if(path.extname(file)==='.html'){
-      const banner=smartAppBannerContent(url.searchParams,process.env.APP_STORE_CAMPAIGN_URL).replaceAll('&','&amp;');
+      const argument=appOpenUrl(bannerHandoff(req.headers.cookie||''));
+      const banner=(smartAppBannerContent(url.searchParams,process.env.APP_STORE_CAMPAIGN_URL)+(argument?`, app-argument=${argument}`:'')).replaceAll('&','&amp;');
       content=content.toString('utf8').replace('<meta name="apple-itunes-app" content="app-id=6756235224">',()=>`<meta name="apple-itunes-app" content="${banner}">`);
     }
     res.writeHead(200,{...headers,'Content-Type':types[path.extname(file)]||'application/octet-stream'});res.end(req.method==='HEAD'?undefined:content);

@@ -1,3 +1,5 @@
+import { appAssociation } from './app-association.mjs';
+import { appOpenUrl, bannerHandoff } from './dist/app-handoff.mjs';
 import { verifyCaptcha } from './captcha.mjs';
 import { appleNotification } from './payments/handler.mjs';
 import { ATTRIBUTION_WINDOW_MS,createAttribution,validAttribution } from './payments/ledger.mjs';
@@ -32,6 +34,9 @@ export function createHandler({html,csp,verify=verifyCaptcha}) {
   return async function handle(request,env) {
     const url=new URL(request.url);
     if(url.origin!==env.PUBLIC_ORIGIN)return json(403,{ok:false,error:'This host is not allowed.'});
+    if(url.pathname==='/.well-known/apple-app-site-association' && ['GET','HEAD'].includes(request.method)) {
+      return new Response(request.method==='HEAD'?null:JSON.stringify(appAssociation),{headers:{...baseHeaders,'Content-Type':'application/json'}});
+    }
     if(url.pathname==='/api/apple/notifications/production')return appleNotification(request,env,'Production');
     if(url.pathname==='/api/apple/notifications/sandbox')return appleNotification(request,env,'Sandbox');
     if(url.pathname==='/api/config'&&request.method==='GET')return json(200,{
@@ -59,7 +64,8 @@ export function createHandler({html,csp,verify=verifyCaptcha}) {
     if(url.pathname.startsWith('/api/'))return json(404,{ok:false,error:'Not found.'});
     if(!['GET','HEAD'].includes(request.method))return json(405,{ok:false,error:'Method not allowed.'});
     if(!['/','/index.html'].includes(url.pathname))return json(404,{ok:false,error:'Not found.'});
-    const banner=smartAppBannerContent(url.searchParams,env.APP_STORE_CAMPAIGN_URL).replaceAll('&','&amp;');
+    const argument=appOpenUrl(bannerHandoff(request.headers.get('Cookie')||''));
+    const banner=(smartAppBannerContent(url.searchParams,env.APP_STORE_CAMPAIGN_URL)+(argument?`, app-argument=${argument}`:'')).replaceAll('&','&amp;');
     const page=html.replace('<meta name="apple-itunes-app" content="app-id=6756235224">',()=>`<meta name="apple-itunes-app" content="${banner}">`);
     return new Response(request.method==='HEAD'?null:page,{headers:{...baseHeaders,'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':csp}});
   };
