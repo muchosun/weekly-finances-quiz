@@ -44,3 +44,11 @@ export function analyticsAttribution({ allowed, clientId, yclid }) {
   if (typeof yclid === 'string' && /^\d{1,64}$/.test(yclid)) value.yclid = yclid;
   return value.clientId || value.yclid ? value : null;
 }
+
+// A cookie lets Safari receive the token in the initial HTML on return visits.
+export function bannerHandoff(cookie, now = Date.now()) {
+  try {
+    const raw = cookie.split(';').map(x => x.trim()).find(x => x.startsWith('wf-banner='));
+    return raw ? validAppHandoff(JSON.parse(decodeURIComponent(raw.slice(10))), now) : null;
+  } catch { return null; }
+}

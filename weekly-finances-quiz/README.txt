@@ -117,3 +117,32 @@ If browser storage is unavailable, the link still works in the current page,
 but cannot be restored after a reload. Without analytics identifiers the normal
 quiz and App Store links work, with no fabricated attribution token.
 app_open_click is only an opening intent; it is not an installation or payment.
+
+Quiz-host iOS association and Smart App Banner
+---------------------------------------------
+The Worker and local server serve /.well-known/apple-app-site-association as
+JSON without redirects. It associates F2UDUTZH7S.com.pistonsky.FinancialPlan
+with /open?token=… only; quiz entry and API routes remain browser routes.
+The signed app must include applinks:weekly-finances-quiz.muchosun.workers.dev.
+Adding that entitlement does not extend the app's URL parser: quiz-host /open
+handling must also be added before using that host for incoming app links.
+
+Keep the quiz's ordinary Open button on financialplan.pistonsky.dev: Safari
+keeps same-domain navigation in the browser. The installed app can open directly
+from this cross-domain button without visiting the fallback.
+
+The existing native Smart App Banner now receives the same canonical token URL
+as app-argument on completion/resume. A Secure SameSite=Lax cookie mirrors only
+the existing versioned token/expiry (not answers or analytics IDs) so subsequent
+HTML responses contain it before Safari parses the page. Starting again clears
+it; invalid/expired records are ignored. Responses remain no-store.
+Safari may not refresh a native banner after a client-side meta update; a return
+visit/reload gets the argument in initial HTML. The regular Open button remains
+available. Banner display is controlled by Safari, including dismissal history
+and App Store availability; do not assume TestFlight alone guarantees display.
+
+Before release: deploy, check HTTP 200 JSON and Apple's CDN for the quiz host,
+then reinstall/update the signed build. On a physical iPhone test completion,
+return/reload, banner Open, and the ordinary cross-domain button with the same
+UUID. Verify cold/warm app launches and the token in a sandbox transaction.
+No payment-export flags are changed by this patch.

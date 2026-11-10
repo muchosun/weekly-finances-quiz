@@ -65,6 +65,7 @@ function handoffStorage() {
 function resetAppHandoff() {
   appHandoff=null;
   clearAppHandoff(handoffStorage());
+  document.cookie='wf-banner=; Path=/; Max-Age=0; SameSite=Lax; Secure';
 }
 
 async function completionAttribution() {
@@ -353,7 +354,17 @@ async function complete() {
   }
 }
 
+function syncSmartAppBanner() {
+  const tag=document.querySelector('meta[name="apple-itunes-app"]');
+  if(!tag)return;
+  const base=tag.content.replace(/, app-argument=.*$/, '');
+  const href=appOpenUrl(appHandoff);
+  tag.content=base+(href?`, app-argument=${href}`:'');
+  if(href)document.cookie=`wf-banner=${encodeURIComponent(JSON.stringify(appHandoff))}; Path=/; Max-Age=${Math.max(0,Math.floor((appHandoff.expiresAt-Date.now())/1000))}; SameSite=Lax; Secure`;
+}
+
 function render() {
+  syncSmartAppBanner();
   renderVersion++;
   document.body.dataset.screen=typeof screen==='number'?'question':screen;
   $('.market-control').hidden=screen!=='home';$('#locked-market').hidden=screen==='home';$('#locked-market').textContent=markets[market].currency;

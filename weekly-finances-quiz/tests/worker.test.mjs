@@ -47,3 +47,29 @@ test('live completion propagates verification failure and requires configured pr
   assert.deepEqual(await response.json(),{ok:true,status:200,verified:true});
   assert.equal(options.expectedHost,'quiz.example');
 });
+
+test('AASA is public JSON without redirects and HEAD has no body',async()=>{
+  const handle=createHandler({html:'page',csp:'test'});
+  for(const method of ['GET','HEAD']){
+    const response=await handle(new Request(origin+'/.well-known/apple-app-site-association',{method}),env);
+    assert.equal(response.status,200);
+    assert.equal(response.headers.get('Content-Type'),'application/json');
+    assert.equal(response.headers.get('Location'),null);
+    if(method==='HEAD')assert.equal(await response.text(),'');
+    else assert.deepEqual((await response.json()).applinks.details,[{
+      appIDs:['F2UDUTZH7S.com.pistonsky.FinancialPlan'],
+      components:[{'/':'/open','?':{token:'?*'}}],
+    }]);
+  }
+});
+
+test('return visit banner carries a valid token, ignoring expired or malformed cookies',async()=>{
+  const tag='<meta name="apple-itunes-app" content="app-id=6756235224">';
+  const handle=createHandler({html:tag,csp:'test'});
+  const record={version:1,token:'7e3fb20b-4cdb-47cc-936d-99d65f608138',expiresAt:Date.now()+60000};
+  const request=value=>new Request(origin+'/',{headers:{Cookie:'wf-banner='+encodeURIComponent(JSON.stringify(value))}});
+  assert.match(await (await handle(request(record),env)).text(),/app-argument=https:\/\/financialplan.pistonsky.dev\/open\?token=7e3fb20b/);
+  for(const bad of [{...record,expiresAt:1},{...record,token:'"><script>'},null]){
+    assert.equal(await (await handle(request(bad),env)).text(),tag);
+  }
+});
